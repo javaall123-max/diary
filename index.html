@@ -2,28 +2,55 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
     <title>심플 달력 메모</title>
     <!-- CryptoJS 라이브러리 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #f4f5f7;
-            --primary-color: #007bff;
-            --postit-yellow: #fff9c4;
-            --postit-border: #fbc02d;
-            --nav-height: 60px;
+            --md-primary: #D0BCFF;
+            --md-on-primary: #381E72;
+            --md-primary-container: #4F378B;
+            --md-on-primary-container: #EADDFF;
+            --md-secondary: #CCC2DC;
+            --md-secondary-container: #4A4458;
+            --md-error: #F2B8B5;
+            --md-error-container: #8C1D18;
+            --md-success: #81C995;
+            --md-success-container: #0F5132;
+            --md-warning-container: #5C4000;
+
+            --md-bg: #000000;
+            --md-surface: #000000;
+            --md-surface-container: #121212;
+            --md-surface-container-high: #1E1E1E;
+            --md-surface-variant: #2C2C2C;
+            --md-on-surface: #E6E1E5;
+            --md-on-surface-variant: #CAC4D0;
+            --md-outline: #49454F;
+            --md-outline-variant: #2C2C2C;
+
+            --nav-height: 68px;
+            --fab-size: 56px;
         }
 
         * { box-sizing: border-box; }
+        *:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+
+        html, body {
+            overscroll-behavior-y: contain;
+        }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
+            font-family: 'Roboto', 'Noto Sans KR', -apple-system, sans-serif;
+            background-color: var(--md-bg);
             margin: 0;
             padding: 0;
-            color: #333;
-            /* 하단 탭바에 콘텐츠가 가리지 않도록 여백 지정 */
+            color: var(--md-on-surface);
+            -webkit-tap-highlight-color: transparent;
             padding-bottom: calc(var(--nav-height) + 20px);
         }
 
@@ -32,8 +59,7 @@
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(5px);
+            background: #000000;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -41,141 +67,256 @@
         }
 
         .lock-card {
-            background: white;
-            padding: 30px 25px;
-            border-radius: 12px;
+            background: #000000;
+            padding: 24px;
             width: 90%;
             max-width: 360px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
             text-align: center;
+            border: none;
         }
 
-        .lock-card h2 { margin-top: 0; margin-bottom: 10px; font-size: 1.3rem; }
-        .lock-card p { font-size: 0.88rem; color: #666; margin-bottom: 20px; }
+        .lock-card h2 { margin-top: 0; margin-bottom: 8px; font-size: 1.25rem; color: var(--md-on-surface); }
+        .lock-card p { font-size: 0.86rem; color: var(--md-on-surface-variant); margin-bottom: 22px; }
 
         .lock-card input[type="password"] {
-            width: 100%; padding: 12px; border: 1px solid #ccc;
-            border-radius: 6px; font-size: 1rem; margin-bottom: 15px;
-            text-align: center;
+            width: 100%; padding: 14px; border: none; border-bottom: 2px solid var(--md-outline);
+            border-radius: 0; font-size: 1rem; margin-bottom: 20px;
+            text-align: center; background: transparent; color: var(--md-on-surface);
+            font-family: inherit; transition: border-color 0.15s ease;
         }
+        .lock-card input[type="password"]:focus { border-bottom-color: var(--md-primary); outline: none; }
 
         .lock-card button {
-            width: 100%; padding: 12px; background: var(--primary-color);
-            color: white; border: none; border-radius: 6px;
-            font-size: 1rem; font-weight: bold; cursor: pointer;
+            width: 100%; padding: 14px; background: var(--md-primary);
+            color: var(--md-on-primary); border: none; border-radius: 100px;
+            font-size: 0.95rem; font-weight: 700; cursor: pointer; font-family: inherit;
+        }
+
+        .lock-forgot {
+            margin-top: 18px;
+            font-size: 0.82rem;
+            color: var(--md-on-surface-variant);
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .lock-forgot:hover { color: var(--md-on-surface); }
+
+        /* '한 번 더 누르면 종료' 토스트 */
+        .exit-toast {
+            position: fixed;
+            left: 50%;
+            bottom: calc(var(--nav-height) + 18px);
+            transform: translateX(-50%) translateY(10px);
+            background: var(--md-surface-container-high);
+            color: var(--md-on-surface);
+            padding: 10px 20px;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+            z-index: 10600;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .exit-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
 
         /* 메인 컨테이너 */
         .container {
             max-width: 700px;
             margin: 0 auto;
-            padding: 15px;
+            padding: 14px 14px 0;
             display: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: pan-y;
+        }
+        .container input, .container textarea {
+            -webkit-user-select: text;
+            user-select: text;
         }
 
+        /* 상단 헤더 */
         header {
             text-align: center;
             padding-bottom: 10px;
-            margin-bottom: 15px;
-            border-bottom: 1px solid #ddd;
+            margin-bottom: 4px;
+            border-bottom: 1px solid var(--md-outline-variant);
         }
-        header h1 { margin: 0; font-size: 1.3rem; color: #333; }
+        header h1 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--md-on-surface);
+            letter-spacing: 0.1px;
+        }
 
-        /* 탭 패널 (기본 숨김 처리) */
+        /* 탭 패널 */
         .tab-panel {
             display: none;
         }
         .tab-panel.active {
             display: block;
         }
+        .tab-panel.slide-from-right { animation: slideFromRight 0.26s cubic-bezier(0.2,0.8,0.2,1); }
+        .tab-panel.slide-from-left { animation: slideFromLeft 0.26s cubic-bezier(0.2,0.8,0.2,1); }
+        .tab-panel.slide-from-bottom { animation: slideFromBottom 0.26s cubic-bezier(0.2,0.8,0.2,1); }
+        .tab-panel.slide-from-top { animation: slideFromTop 0.26s cubic-bezier(0.2,0.8,0.2,1); }
 
+        @keyframes slideFromRight {
+            from { transform: translateX(28px); opacity: 0; }
+            to   { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideFromLeft {
+            from { transform: translateX(-28px); opacity: 0; }
+            to   { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideFromBottom {
+            from { transform: translateY(28px); opacity: 0; }
+            to   { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes slideFromTop {
+            from { transform: translateY(-28px); opacity: 0; }
+            to   { transform: translateY(0); opacity: 1; }
+        }
+
+        /* 패널 박스 테두리 제거 */
         .panel-box {
-            background: white;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            background: transparent;
+            border-radius: 0;
+            padding: 12px 0;
+            margin-bottom: 14px;
+            border: none;
+            box-shadow: none;
         }
 
         .panel-title {
             font-size: 0.95rem;
-            font-weight: bold;
+            font-weight: 700;
             margin-bottom: 12px;
-            color: #444;
+            color: var(--md-on-surface);
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
 
-        .search-bar { display: flex; gap: 8px; }
-        .search-bar input {
-            flex-grow: 1; padding: 10px; border: 1px solid #ccc;
-            border-radius: 6px; font-size: 0.95rem;
+        .memo-top-header {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .sort-select {
+            padding: 6px 12px;
+            border: 1px solid var(--md-outline);
+            border-radius: 100px;
+            background: transparent;
+            color: var(--md-on-surface);
+            font-size: 0.85rem;
+            font-family: inherit;
+            outline: none;
+            cursor: pointer;
         }
 
-        /* 공통 리스트 컨테이너 */
+        .search-panel-box {
+            padding: 6px 0;
+            margin-bottom: 10px;
+        }
+        .search-bar { display: flex; gap: 8px; align-items: center; }
+        .search-bar input {
+            flex-grow: 1; padding: 10px 16px; border: 1px solid var(--md-outline);
+            border-radius: 100px; font-size: 0.9rem;
+            background: transparent; color: var(--md-on-surface);
+            font-family: inherit;
+        }
+        .search-bar input:focus { outline: 2px solid var(--md-primary); }
+        .clear-search-btn {
+            background: none; border: none; font-size: 1.4rem;
+            font-weight: 700; color: var(--md-on-surface-variant);
+            cursor: pointer; padding: 0 6px; line-height: 1;
+        }
+        .clear-search-btn:hover { color: var(--md-error); }
+
         .memo-list-container {
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 4px;
         }
 
         .empty-msg {
             font-size: 0.88rem;
-            color: #888;
-            padding: 20px 0;
+            color: var(--md-on-surface-variant);
+            padding: 28px 0;
             text-align: center;
             width: 100%;
         }
 
-        /* 컨트롤 레이아웃 */
         .control-row {
             display: flex; gap: 8px; align-items: center;
             flex-wrap: wrap; margin-bottom: 10px;
         }
 
+        .sort-select {
+            border: 1px solid var(--md-outline);
+            background: var(--md-surface-container);
+            color: var(--md-on-surface);
+            padding: 8px 10px;
+            border-radius: 100px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            flex-shrink: 0;
+            max-width: 110px;
+        }
+        .sort-select:focus { outline: 2px solid var(--md-primary); }
+
         .control-row input[type="date"] {
-            padding: 8px; border: 1px solid #ccc;
-            border-radius: 6px; font-size: 0.85rem;
+            padding: 9px 12px; border: 1px solid var(--md-outline);
+            border-radius: 12px; font-size: 0.85rem;
+            background: transparent; color: var(--md-on-surface);
+            font-family: inherit;
         }
 
         .status-tag {
-            font-size: 0.8rem; padding: 3px 8px;
-            border-radius: 12px; background: #e9ecef; color: #555;
+            font-size: 0.78rem; padding: 4px 10px;
+            border-radius: 100px; background: var(--md-surface-variant); color: var(--md-on-surface-variant);
+            font-weight: 500;
         }
-        .status-tag.active { background: #d4edda; color: #155724; }
+        .status-tag.active { background: var(--md-success-container); color: var(--md-success); }
 
-        /* 리스트 아이템 디자인 */
         .result-item {
-            padding: 12px 10px;
-            border-bottom: 1px solid #f0f0f0;
+            padding: 10px 8px;
+            background: transparent;
+            border: none;
             display: flex;
             gap: 10px;
             align-items: center;
-            min-height: 48px;
+            min-height: 38px;
         }
         .result-item.clickable {
             cursor: pointer;
+            transition: background-color 0.15s ease;
         }
         .result-item.clickable:hover {
-            background-color: #f8f9fa;
+            background-color: var(--md-surface-container-high);
+            border-radius: 8px;
         }
         
         .result-date { 
-            font-weight: bold; 
-            font-size: 0.82rem; 
-            background: #e9ecef; 
-            padding: 4px 8px; 
-            border-radius: 4px; 
+            font-weight: 400; 
+            font-size: 0.78rem; 
+            color: var(--md-on-surface-variant);
             white-space: nowrap; 
             flex-shrink: 0;
         }
-        .result-date.free-tag { background: #e2e8f0; color: #334155; }
-        .result-date.trash-tag { background: #fee2e2; color: #991b1b; }
 
         .item-text {
             font-size: 0.92rem;
-            color: #333;
+            color: var(--md-on-surface);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -190,88 +331,178 @@
             flex-shrink: 0;
         }
 
-        /* 달력 헤더 & 그리드 */
+        /* 달력 테두리 및 박스 제거 */
         .calendar-header {
             display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 12px; background: white; padding: 12px 15px;
-            border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 8px; background: transparent; padding: 8px 4px;
+            border: none; box-shadow: none;
         }
-        .calendar-header h2 { margin: 0; font-size: 1.2rem; }
+        .calendar-header h2 { 
+            margin: 0; 
+            font-size: 0.85rem; 
+            font-weight: 700; 
+            color: var(--md-on-surface); 
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .year-picker {
+            cursor: pointer;
+            padding: 1px 6px;
+            border-radius: 6px;
+            background: var(--md-primary-container);
+            color: var(--md-on-primary-container);
+            font-size: 0.85rem;
+        }
         
         .nav-btn {
-            background: var(--primary-color); color: white; border: none;
-            padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem;
+            background: transparent; color: var(--md-secondary); border: 1px solid var(--md-outline);
+            width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-weight: 700; font-size: 0.9rem;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
 
         .calendar-grid {
             display: grid; grid-template-columns: repeat(7, 1fr);
-            gap: 6px; background: white; padding: 12px;
-            border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            gap: 4px; background: transparent; padding: 4px 0;
+            border: none; box-shadow: none;
         }
 
-        .day-header { text-align: center; font-weight: bold; padding: 6px 0; color: #666; font-size: 0.85rem; }
+        .day-header { text-align: center; font-weight: 700; padding: 4px 0; color: var(--md-on-surface-variant); font-size: 0.78rem; }
+        .day-header.sunday-color { color: #E57373; }
+        .day-header.saturday-color { color: #64B5F6; }
 
         .day-cell {
-            min-height: 75px; background: #fafafa; border: 1px solid #eee;
-            border-radius: 6px; padding: 6px; cursor: pointer;
-            display: flex; flex-direction: column; justify-content: space-between;
+            min-height: 56px; background: transparent; border: none;
+            border-radius: 12px; padding: 4px; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px;
         }
-        .day-cell:hover { border-color: var(--primary-color); background: #fff; }
-        .day-cell.empty { background: #f9f9f9; border: none; cursor: default; }
+        .day-cell:hover { background: var(--md-surface-container-high); }
+        .day-cell.empty { background: transparent; cursor: default; }
+        .day-cell.empty:hover { background: transparent; }
+
+        .day-number {
+            font-size: 0.85rem;
+            color: var(--md-on-surface);
+            width: 24px; height: 24px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%;
+        }
+        .day-number.sunday-color { color: #E57373; }
+        .day-number.saturday-color { color: #64B5F6; }
+        .day-cell.today .day-number {
+            background: var(--md-primary);
+            color: var(--md-on-primary);
+            font-weight: 700;
+        }
 
         .postit-dot {
-            width: 8px; height: 8px; background-color: var(--postit-border);
-            border-radius: 2px; margin-top: auto;
+            width: 5px; height: 5px; background-color: var(--md-primary);
+            border-radius: 50%; margin-top: auto;
         }
 
-        /* 모달 */
+        /* 전체 화면 메모 수정 화면 */
+        .memo-fullscreen-view {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: var(--md-bg);
+            z-index: 1200;
+            flex-direction: column;
+            padding: 16px;
+            padding-bottom: env(safe-area-inset-bottom, 16px);
+        }
+        .memo-fullscreen-header {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--md-outline-variant);
+        }
+        .memo-fullscreen-header h3 {
+            flex: 1;
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--md-on-surface);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .editor-icon-btn {
+            width: 38px; height: 38px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            font-size: 1.15rem;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--md-on-surface);
+            position: relative;
+            overflow: hidden;
+        }
+        .editor-icon-btn:hover { background: var(--md-surface-container-high); }
+        .memo-fullscreen-header #deleteBtn {
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .memo-fullscreen-view textarea {
+            flex: 1;
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 0;
+            font-family: inherit;
+            font-size: 1rem;
+            line-height: 1.6;
+            background-color: transparent;
+            color: var(--md-on-surface);
+            resize: none;
+            margin-bottom: 12px;
+        }
+        .memo-fullscreen-view textarea:focus { outline: none; }
+
+        /* 모달 테두리 제거 */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%; background: rgba(0,0,0,0.5);
-            justify-content: center; align-items: center; z-index: 1000;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.85);
+            justify-content: center; align-items: center; z-index: 10500;
         }
 
         .modal {
-            background: white; padding: 20px; border-radius: 10px;
-            width: 90%; max-width: 450px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            background: #000000; padding: 22px; border-radius: 0;
+            width: 90%; max-width: 450px; border: none; box-shadow: none;
         }
-
-        .modal-toolbar {
-            display: flex; justify-content: flex-end; gap: 6px; margin-bottom: 8px;
-        }
-
-        .modal textarea {
-            width: 100%; height: 160px; padding: 12px; margin-bottom: 15px;
-            border: 1px solid #ccc; border-radius: 6px; font-family: inherit;
-            font-size: 0.95rem; background-color: #fffdf0; resize: vertical;
-        }
-
+        .modal h3 { margin-top: 0; font-size: 1.1rem; font-weight: 700; color: var(--md-on-surface); }
         .modal-buttons { display: flex; justify-content: flex-end; gap: 8px; }
 
         .btn {
-            padding: 8px 14px; border: none; border-radius: 6px;
-            cursor: pointer; font-weight: bold; font-size: 0.88rem;
+            padding: 10px 18px; border: 1px solid var(--md-outline); border-radius: 100px;
+            cursor: pointer; font-weight: 700; font-size: 0.88rem;
+            font-family: inherit; background: transparent; color: var(--md-on-surface);
         }
-        .btn-primary { background: var(--primary-color); color: white; }
-        .btn-success { background: #28a745; color: white; }
-        .btn-info { background: #17a2b8; color: white; }
-        .btn-warning { background: #ffc107; color: #212529; }
-        .btn-secondary { background: #6c757d; color: white; }
-        .btn-danger { background: #dc3545; color: white; }
-        .btn-sm { padding: 5px 10px; font-size: 0.78rem; }
+        .btn-primary { background: var(--md-primary); color: var(--md-on-primary); border-color: transparent; }
+        .btn-success { background: var(--md-success-container); color: var(--md-success); border-color: transparent; }
+        .btn-info { background: var(--md-secondary-container); color: var(--md-secondary); border-color: transparent; }
+        .btn-warning { background: var(--md-warning-container); color: #FFD54F; border-color: transparent; }
+        .btn-secondary { background: transparent; color: var(--md-on-surface); border-color: var(--md-outline); }
+        .btn-danger { background: var(--md-error-container); color: var(--md-error); border-color: transparent; }
+        .btn-sm { padding: 7px 14px; font-size: 0.78rem; }
 
-        /* 하단 고정 탭 바 (Bottom Navigation Bar) */
+        /* 하단 고정 탭 바 */
         .bottom-nav {
             position: fixed;
             bottom: 0; left: 0; right: 0;
             height: var(--nav-height);
-            background: #ffffff;
-            border-top: 1px solid #e0e0e0;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+            background: var(--md-bg);
             display: flex;
             justify-content: space-around;
             align-items: center;
             z-index: 900;
-            box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
+            border-top: 1px solid var(--md-outline-variant);
         }
 
         .nav-item {
@@ -280,28 +511,90 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: 3px;
             height: 100%;
-            color: #777;
+            color: var(--md-on-surface-variant);
             background: none;
             border: none;
             cursor: pointer;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
+            font-family: inherit;
+            font-weight: 500;
             padding: 0;
-            transition: color 0.2s ease;
         }
 
         .nav-item .icon {
-            font-size: 1.25rem;
-            margin-bottom: 2px;
+            font-size: 1.4rem;
+            line-height: 1;
         }
 
-        .nav-item.active {
-            color: var(--primary-color);
-            font-weight: bold;
+        .nav-item.active { color: var(--md-primary); font-weight: 700; }
+
+        .fab {
+            position: fixed;
+            right: 20px;
+            bottom: calc(var(--nav-height) + 18px);
+            width: var(--fab-size); height: var(--fab-size);
+            border-radius: 18px;
+            background: var(--md-primary-container);
+            color: var(--md-on-primary-container);
+            border: none;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            cursor: pointer;
+            z-index: 890;
+        }
+        .fab.show { display: flex; }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .setting-row .setting-label { font-size: 0.9rem; color: var(--md-on-surface); font-weight: 500; }
+        .setting-desc { font-size: 0.78rem; color: var(--md-on-surface-variant); margin-top: 2px; }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--md-outline);
+            transition: 0.2s;
+            border-radius: 26px;
+        }
+        .switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px; width: 20px;
+            left: 3px; bottom: 3px;
+            background-color: var(--md-on-surface-variant);
+            transition: 0.2s;
+            border-radius: 50%;
+        }
+        .switch input:checked + .switch-slider {
+            background-color: var(--md-primary);
+        }
+        .switch input:checked + .switch-slider:before {
+            transform: translateX(20px);
+            background-color: var(--md-on-primary);
         }
     </style>
 </head>
 <body>
+
+<!-- '뒤로가기 한 번 더 누르면 종료' 안내 토스트 -->
+<div id="exitToast" class="exit-toast">한 번 더 누르면 종료됩니다</div>
 
 <!-- 암호 잠금 화면 -->
 <div class="lock-screen-overlay" id="lockScreen">
@@ -310,42 +603,45 @@
         <p id="lockDesc">비밀번호를 입력하세요.</p>
         <input type="password" id="appPasswordInput" placeholder="비밀번호 입력" onkeyup="if(event.key==='Enter') unlockApp()">
         <button onclick="unlockApp()" id="lockBtn">확인</button>
+        <div class="lock-forgot" id="lockForgotLink" onclick="resetForgottenPassword()">비밀번호를 잊으셨나요?</div>
     </div>
 </div>
 
 <!-- 메인 컨테이너 -->
 <div class="container" id="mainContainer">
     <header>
-        <h1 id="headerTitle">📅 달력 메모</h1>
+        <h1 id="headerTitle">📅 달력</h1>
     </header>
 
-    <!-- 1탭: 자유 메모 -->
+    <!-- 1탭: 메모 -->
     <div class="tab-panel" id="tabFree">
         <div class="panel-box">
-            <div class="panel-title">
-                <span>📝 자유 메모 목록 (<span id="freeMemoCount">0</span>개)</span>
-                <button class="btn btn-primary btn-sm" onclick="openFreeMemoModal(null)">+ 새 메모 작성</button>
+            <div class="memo-top-header">
+                <select id="freeMemoSortSelect" class="sort-select" onchange="changeFreeMemoSort()">
+                    <option value="date" id="optSortCreated">생성시간순</option>
+                    <option value="title" id="optSortTitle1">제목순</option>
+                </select>
             </div>
             <div class="memo-list-container" id="freeMemosGrid"></div>
         </div>
     </div>
 
-    <!-- 2탭: 달력 (초기 기본 화면) -->
+    <!-- 2탭: 달력 -->
     <div class="tab-panel active" id="tabCalendar">
         <div class="calendar-header">
-            <button class="nav-btn" onclick="changeMonth(-1)">&lt; 이전달</button>
+            <button class="nav-btn" id="prevMonthBtn" onclick="changeMonth(-1)" aria-label="이전달">‹</button>
             <h2 id="currentMonthYear"></h2>
-            <button class="nav-btn" onclick="changeMonth(1)">다음달 &gt;</button>
+            <button class="nav-btn" id="nextMonthBtn" onclick="changeMonth(1)" aria-label="다음달">›</button>
         </div>
         <div class="calendar-grid" id="calendarGrid"></div>
     </div>
 
     <!-- 3탭: 검색 -->
     <div class="tab-panel" id="tabSearch">
-        <div class="panel-box">
+        <div class="panel-box search-panel-box">
             <div class="search-bar">
-                <input type="text" id="searchInput" placeholder="달력 및 자유 메모 검색어 입력..." oninput="searchMemos()">
-                <button class="btn btn-secondary" onclick="clearSearch()">초기화</button>
+                <input type="text" id="searchInput" placeholder="" oninput="searchMemos()">
+                <button class="clear-search-btn" id="clearSearchBtn" onclick="clearSearch()" title="검색 초기화">×</button>
             </div>
         </div>
         <div class="panel-box" id="searchResults" style="display: none;">
@@ -354,20 +650,41 @@
         </div>
     </div>
 
-    <!-- 4탭: 설정 및 기타 기능 -->
+    <!-- 4탭: 설정 -->
     <div class="tab-panel" id="tabSettings">
-        <!-- 보안 설정 -->
         <div class="panel-box">
-            <div class="panel-title">
-                <span>🔑 보안 관리</span>
+            <div class="control-row" style="margin-bottom:0;">
+                <button class="btn btn-primary" onclick="openAllMemosView()" id="btnAllMemos">모든 메모 보기</button>
+                <button class="btn btn-secondary" onclick="openTrashView()" id="btnTrash">🗑️ 휴지통</button>
+                <select class="sort-select" id="languageSelect" onchange="changeLanguage(this.value)" aria-label="Language / 언어">
+                    <option value="ko">🇰🇷 한국어</option>
+                    <option value="en">🇺🇸 English</option>
+                    <option value="zh">🇨🇳 中文</option>
+                    <option value="ja">🇯🇵 日本語</option>
+                </select>
             </div>
-            <button class="btn btn-secondary" onclick="changeAppPassword()">앱 비밀번호 변경</button>
         </div>
 
-        <!-- 백업 파일 생성 -->
         <div class="panel-box">
             <div class="panel-title">
-                <span>🔒 암호화 백업 저장 (.html)</span>
+                <span id="secTitleSecurity">🔑 보안 관리</span>
+            </div>
+            <div class="setting-row">
+                <div>
+                    <div class="setting-label" id="lockToggleLabel">시작 시 비밀번호 확인</div>
+                    <div class="setting-desc" id="lockToggleDesc">끄면 앱 실행 시 잠금 화면 없이 바로 열립니다.</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="appLockToggle" onchange="toggleAppLock()">
+                    <span class="switch-slider"></span>
+                </label>
+            </div>
+            <button class="btn btn-secondary" onclick="changeAppPassword()" id="btnChangePassword">앱 비밀번호 변경</button>
+        </div>
+
+        <div class="panel-box">
+            <div class="panel-title">
+                <span id="secTitleBackup">🔒 암호화 백업 저장 (.html)</span>
             </div>
             <div class="control-row">
                 <input type="date" id="startDate">
@@ -375,79 +692,86 @@
                 <input type="date" id="endDate">
             </div>
             <div class="control-row" style="margin-bottom:0;">
-                <button class="btn btn-success btn-sm" onclick="exportEncryptedHtml(false)">선택 기간 백업</button>
-                <button class="btn btn-secondary btn-sm" onclick="exportEncryptedHtml(true)">전체 백업</button>
+                <button class="btn btn-success btn-sm" onclick="exportEncryptedHtml(false)" id="btnBackupRange">선택 기간 백업</button>
+                <button class="btn btn-secondary btn-sm" onclick="exportEncryptedHtml(true)" id="btnBackupAll">전체 백업</button>
             </div>
         </div>
 
-        <!-- 백업 파일 불러오기 -->
         <div class="panel-box">
             <div class="panel-title">
-                <span>📂 백업 파일 불러오기 (.html)</span>
+                <span id="secTitleRestore">📂 백업 파일 불러오기 (.html)</span>
             </div>
             <div class="control-row" style="margin-bottom:0;">
                 <input type="file" id="fileInput" accept=".html,.txt" style="display: none;" onchange="importMemosFromFile(event)">
-                <button class="btn btn-info" onclick="document.getElementById('fileInput').click()">백업 파일 열기</button>
+                <button class="btn btn-info" onclick="document.getElementById('fileInput').click()" id="btnOpenBackupFile">백업 파일 열기</button>
             </div>
-        </div>
-
-        <!-- 새벽 자동 백업 -->
-        <div class="panel-box">
-            <div class="panel-title">
-                <span>🌙 새벽 자동 백업 (매일 03:00)</span>
-                <span id="autoBackupStatus" class="status-tag">비활성화됨</span>
-            </div>
-            <button class="btn btn-warning" id="autoBackupToggleBtn" onclick="toggleAutoBackup()">새벽 자동 백업 시작</button>
-        </div>
-
-        <!-- 휴지통 영역 -->
-        <div class="panel-box">
-            <div class="panel-title">
-                <span>🗑️ 휴지통 (<span id="trashCount">0</span>개)</span>
-                <button class="btn btn-danger btn-sm" onclick="emptyTrash()">휴지통 비우기</button>
-            </div>
-            <div class="memo-list-container" id="trashListContainer"></div>
         </div>
     </div>
 </div>
 
+<!-- 휴지통 전체화면 목록 -->
+<div class="memo-fullscreen-view" id="trashView">
+    <div class="memo-fullscreen-header">
+        <button class="editor-icon-btn" onclick="closeTrashView()" aria-label="뒤로가기">←</button>
+        <h3 id="trashViewTitle">🗑️ 휴지통</h3>
+        <button class="btn btn-danger btn-sm" onclick="emptyTrash()" id="btnEmptyTrash">비우기</button>
+    </div>
+    <div class="memo-list-container" id="trashListContainer" style="overflow-y: auto; flex: 1;"></div>
+</div>
+
 <!-- 하단 고정 탭 바 -->
 <nav class="bottom-nav">
-    <button class="nav-item" onclick="switchTab('tabFree', '📝 자유 메모')">
+    <button class="nav-item" onclick="switchTab('tabFree', tabTitles.tabFree)" aria-label="메모" id="navMemoBtn">
         <span class="icon">📝</span>
-        <span>자유 메모</span>
     </button>
-    <button class="nav-item active" onclick="switchTab('tabCalendar', '📅 달력 메모')">
+    <button class="nav-item active" onclick="switchTab('tabCalendar', tabTitles.tabCalendar)" aria-label="달력" id="navCalendarBtn">
         <span class="icon">📅</span>
-        <span>달력</span>
     </button>
-    <button class="nav-item" onclick="switchTab('tabSearch', '🔍 메모 검색')">
+    <button class="nav-item" onclick="switchTab('tabSearch', tabTitles.tabSearch)" aria-label="검색" id="navSearchBtn">
         <span class="icon">🔍</span>
-        <span>검색</span>
     </button>
-    <button class="nav-item" onclick="switchTab('tabSettings', '⚙️ 설정')">
+    <button class="nav-item" onclick="switchTab('tabSettings', tabTitles.tabSettings)" aria-label="설정" id="navSettingsBtn">
         <span class="icon">⚙️</span>
-        <span>설정</span>
     </button>
 </nav>
 
-<!-- 메모 작성/수정 모달 -->
-<div class="modal-overlay" id="memoModal">
-    <div class="modal">
+<!-- 플로팅 액션 버튼 -->
+<button class="fab" id="fabAddMemo" onclick="openFreeMemoModal(null)" aria-label="새 메모 작성">+</button>
+
+<!-- 전체 화면 메모 작성/수정 뷰 -->
+<div class="memo-fullscreen-view" id="memoFullscreenView">
+    <div class="memo-fullscreen-header">
+        <button class="editor-icon-btn" onclick="closeFullscreenMemo(true)" aria-label="뒤로가기">←</button>
         <h3 id="modalTitle">메모 작성</h3>
-        
-        <!-- 되돌리기/다시실행 툴바 -->
-        <div class="modal-toolbar">
-            <button class="btn btn-secondary btn-sm" onclick="undoMemoText()" title="되돌리기 (Ctrl+Z)">↩️ 되돌리기</button>
-            <button class="btn btn-secondary btn-sm" onclick="redoMemoText()" title="다시실행 (Ctrl+Y)">↪️ 다시실행</button>
-        </div>
+        <button class="editor-icon-btn" onclick="undoMemoText()" title="되돌리기 (Ctrl+Z)" id="undoBtn" aria-label="되돌리기">↩️</button>
+        <button class="editor-icon-btn" onclick="redoMemoText()" title="다시실행 (Ctrl+Y)" id="redoBtn" aria-label="다시실행">↪️</button>
+        <button class="btn btn-danger btn-sm" id="deleteBtn" style="display:none;" onclick="deleteMemo()">삭제</button>
+    </div>
 
-        <textarea id="memoContentInput" placeholder="내용을 입력하세요..." oninput="handleTextareaInput()"></textarea>
+    <textarea id="memoContentInput" placeholder="내용을 입력하세요..." oninput="handleTextareaInput()"></textarea>
+</div>
 
+<!-- 모든 메모 전체화면 목록 -->
+<div class="memo-fullscreen-view" id="allMemosView">
+    <div class="memo-fullscreen-header">
+        <button class="editor-icon-btn" onclick="closeAllMemosView()" aria-label="뒤로가기">←</button>
+        <h3 id="allMemosViewTitle">📋 모든 메모</h3>
+        <select class="sort-select" id="allMemosSortSelect" onchange="setAllMemosSort(this.value)" aria-label="정렬 기준">
+            <option value="date" id="optSortDate2">📅 날짜순</option>
+            <option value="title" id="optSortTitle2">🔤 제목순</option>
+        </select>
+    </div>
+    <div class="memo-list-container" id="allMemosGrid" style="overflow-y: auto; flex: 1;"></div>
+</div>
+
+<!-- 공용 알림/확인/입력 모달 -->
+<div class="modal-overlay" id="customDialogOverlay">
+    <div class="modal" style="max-width: 340px;">
+        <p id="customDialogMessage" style="font-size: 0.95rem; line-height: 1.5; margin: 0 0 15px 0; white-space: pre-line;"></p>
+        <input type="text" id="customDialogInput" style="width:100%; padding:10px; border:1px solid var(--md-outline); border-radius:0; font-size:0.95rem; margin-bottom:15px; display:none; box-sizing:border-box; background:transparent; color:var(--md-on-surface);">
         <div class="modal-buttons">
-            <button class="btn btn-danger" id="deleteBtn" style="display:none;" onclick="deleteMemo()">휴지통으로 이동</button>
-            <button class="btn btn-secondary" onclick="closeModal()">취소</button>
-            <button class="btn btn-primary" onclick="saveMemo()">저장</button>
+            <button class="btn btn-secondary" id="customDialogCancelBtn">취소</button>
+            <button class="btn btn-primary" id="customDialogOkBtn">확인</button>
         </div>
     </div>
 </div>
@@ -457,29 +781,519 @@
     let selectedDateKey = '';
     let selectedFreeMemoId = null;
     let isFreeMemoMode = false;
+    let activeTabId = 'tabCalendar';
+    let allMemosSortBy = 'date';
+    let freeMemoSortBy = 'date';
 
     let memos = JSON.parse(localStorage.getItem('simplePostitNotes')) || {};
     let freeMemos = JSON.parse(localStorage.getItem('simpleFreeMemos')) || [];
     let deletedMemos = JSON.parse(localStorage.getItem('simpleDeletedMemos')) || [];
 
-    let autoBackupTimer = null;
-    let lastBackupDate = '';
     let loggedInPassword = '';
+
+    let appLockEnabled = localStorage.getItem('appLockEnabled');
+    appLockEnabled = (appLockEnabled === null) ? true : (appLockEnabled === 'true');
 
     let undoStack = [];
     let redoStack = [];
     let isUndoRedoAction = false;
+    let isFullscreenOpen = false;
+    let isAllMemosViewOpen = false;
+    let isTrashViewOpen = false;
 
-    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+    /* ===================== 다국어(i18n) ===================== */
+    let currentLang = localStorage.getItem('appLanguage') || 'ko';
+
+    const dayNamesByLang = {
+        ko: ['일', '월', '화', '수', '목', '금', '토'],
+        en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        zh: ['日', '一', '二', '三', '四', '五', '六'],
+        ja: ['日', '月', '火', '水', '木', '金', '土']
+    };
+
+    const translations = {
+        ko: {
+            lockTitleUnlock: '🔒 메모장 잠금 해제',
+            lockDescUnlock: '비밀번호를 입력하세요.',
+            lockTitleSetup: '🔑 초기 비밀번호 설정',
+            lockDescSetup: '메모장에 사용할 비밀번호를 설정해 주세요.',
+            lockTitleReset: '🔑 새 비밀번호 설정',
+            lockDescReset: '메모장에 사용할 새 비밀번호를 설정해 주세요.',
+            lockBtnRegister: '비밀번호 등록',
+            lockBtnConfirm: '확인',
+            lockPasswordPlaceholder: '비밀번호 입력',
+            lockForgot: '비밀번호를 잊으셨나요?',
+
+            navMemo: '메모', navCalendar: '달력', navSearch: '검색', navSettings: '설정',
+            tabTitleFree: '📝 메모', tabTitleCalendar: '📅 달력', tabTitleSearch: '🔍 검색', tabTitleSettings: '⚙️ 설정',
+            prevMonth: '이전달', nextMonth: '다음달',
+
+            sortByCreated: '생성시간순', sortByTitle: '제목순',
+            sortByDateEmoji: '📅 날짜순', sortByTitleEmoji: '🔤 제목순',
+            emptyMemoList: '등록된 메모가 없습니다.',
+            newMemoAria: '새 메모 작성',
+
+            clearSearchTitle: '검색 초기화',
+            searchResultDefaultTitle: '검색 결과',
+            noSearchResults: '검색 결과가 없습니다.',
+            searchPlaceholder: '메모 검색 (예: 07.01. 회의)',
+
+            btnAllMemos: '모든 메모 보기',
+            btnTrash: '🗑️ 휴지통',
+            secTitleSecurity: '🔑 보안 관리',
+            lockToggleLabel: '시작 시 비밀번호 확인',
+            lockToggleDesc: '끄면 앱 실행 시 잠금 화면 없이 바로 열립니다.',
+            btnChangePassword: '앱 비밀번호 변경',
+            secTitleBackup: '🔒 암호화 백업 저장 (.html)',
+            btnBackupRange: '선택 기간 백업',
+            btnBackupAll: '전체 백업',
+            secTitleRestore: '📂 백업 파일 불러오기 (.html)',
+            btnOpenBackupFile: '백업 파일 열기',
+
+            trashViewTitle: '🗑️ 휴지통',
+            btnEmptyTrash: '비우기',
+            emptyTrashMsg: '휴지통이 비어 있습니다.',
+            btnRestore: '복구',
+            btnDelete: '삭제',
+
+            editorTitleNew: '📝 새 메모 작성',
+            editorTitleEditFree: '📝 메모 수정',
+            editorTitleCalendarPrefix: '📅 ',
+            editorTitleCalendarSuffix: ' 메모',
+            undoTitle: '되돌리기 (Ctrl+Z)',
+            redoTitle: '다시실행 (Ctrl+Y)',
+            contentPlaceholder: '내용을 입력하세요...',
+            backAria: '뒤로가기',
+
+            allMemosViewTitle: '📋 모든 메모',
+
+            yearSuffix: '년',
+            monthSuffix: '월',
+            yearPickerTitle: '클릭하여 연도 이동',
+
+            alertEnterPassword: '비밀번호를 입력해 주세요.',
+            alertPasswordSetSuccess: '비밀번호가 성공적으로 설정되었습니다.',
+            alertPasswordWrong: '비밀번호가 올바르지 않습니다.',
+            alertPasswordMismatch: '비밀번호가 일치하지 않습니다.',
+            alertLockOffNotice: '다음 실행부터 비밀번호 확인 없이 앱이 열립니다.',
+            alertLockOnNotice: '다음 실행부터 비밀번호 확인 후 앱이 열립니다.',
+            alertCurrentPasswordWrong: '현재 비밀번호가 일치하지 않습니다.',
+            alertPasswordChanged: '비밀번호가 변경되었습니다.',
+            alertMemoRestored: '메모가 원상복구 되었습니다.',
+            alertSelectDate: '날짜를 선택해 주세요.',
+            alertNoMemosToSave: '저장할 메모가 없습니다.',
+            alertInvalidBackupFile: '올바른 암호화 백업 파일을 찾을 수 없습니다.',
+            alertWrongPasswordOrCorrupt: '비밀번호가 일치하지 않거나 파일이 손상되었습니다.',
+            alertRestoreSuccess: '성공적으로 복원되었습니다!',
+            alertFileLoadError: '파일을 불러오는 중 오류가 발생했습니다.',
+            alertInvalidYear: '올바른 연도를 입력해 주세요. (예: 2027)',
+
+            confirmDeleteTrashPermanent: '휴지통에서 영구히 삭제하시겠습니까? 복구할 수 없습니다.',
+            confirmEmptyTrash: '휴지통을 완전히 비우시겠습니까? 모든 삭제된 메모가 영구 삭제됩니다.',
+            confirmMoveToTrash: '이 메모를 휴지통으로 이동하시겠습니까?',
+            confirmMergeBackup: '백업 데이터를 불러왔습니다. 기존 메모와 합치시겠습니까?',
+            confirmResetPassword: '비밀번호를 초기화하고 새로 설정하시겠습니까?\n\n· 메모장 안의 메모(달력/자유 메모)는 그대로 유지됩니다.\n· 단, 이전 비밀번호로 만든 암호화 백업 파일(.html)은 새 비밀번호로는 열 수 없습니다.\n· 초기화 후에는 처음 사용할 때처럼 새 비밀번호를 등록하게 됩니다.',
+
+            promptCurrentPasswordForLockOff: '보안을 위해 현재 비밀번호를 입력해 주세요:',
+            promptCurrentPassword: '현재 비밀번호를 입력해 주세요:',
+            promptNewPassword: '새로 사용할 비밀번호를 입력해 주세요:',
+            promptBackupPassword: '백업을 암호화할 비밀번호를 입력하세요:',
+            promptDecryptPassword: '백업 파일 복호화 비밀번호를 입력하세요:',
+            promptYear: '이동할 연도를 입력하세요 (예: 2027):',
+
+            exitToastMsg: '한 번 더 누르면 종료됩니다'
+        },
+        en: {
+            lockTitleUnlock: '🔒 Unlock Notes',
+            lockDescUnlock: 'Enter your password.',
+            lockTitleSetup: '🔑 Set Up Password',
+            lockDescSetup: 'Please set a password to use this notes app.',
+            lockTitleReset: '🔑 Set New Password',
+            lockDescReset: 'Please set a new password to use this notes app.',
+            lockBtnRegister: 'Register Password',
+            lockBtnConfirm: 'Confirm',
+            lockPasswordPlaceholder: 'Enter password',
+            lockForgot: 'Forgot your password?',
+
+            navMemo: 'Notes', navCalendar: 'Calendar', navSearch: 'Search', navSettings: 'Settings',
+            tabTitleFree: '📝 Notes', tabTitleCalendar: '📅 Calendar', tabTitleSearch: '🔍 Search', tabTitleSettings: '⚙️ Settings',
+            prevMonth: 'Previous month', nextMonth: 'Next month',
+
+            sortByCreated: 'By created time', sortByTitle: 'By title',
+            sortByDateEmoji: '📅 By date', sortByTitleEmoji: '🔤 By title',
+            emptyMemoList: 'No notes yet.',
+            newMemoAria: 'New note',
+
+            clearSearchTitle: 'Clear search',
+            searchResultDefaultTitle: 'Search results',
+            noSearchResults: 'No results found.',
+            searchPlaceholder: 'Search notes (e.g. meeting)',
+
+            btnAllMemos: 'View All Notes',
+            btnTrash: '🗑️ Trash',
+            secTitleSecurity: '🔑 Security',
+            lockToggleLabel: 'Confirm password on start',
+            lockToggleDesc: 'If off, the app opens directly without a lock screen.',
+            btnChangePassword: 'Change Password',
+            secTitleBackup: '🔒 Encrypted Backup (.html)',
+            btnBackupRange: 'Backup Date Range',
+            btnBackupAll: 'Backup All',
+            secTitleRestore: '📂 Restore Backup File (.html)',
+            btnOpenBackupFile: 'Open Backup File',
+
+            trashViewTitle: '🗑️ Trash',
+            btnEmptyTrash: 'Empty',
+            emptyTrashMsg: 'Trash is empty.',
+            btnRestore: 'Restore',
+            btnDelete: 'Delete',
+
+            editorTitleNew: '📝 New Note',
+            editorTitleEditFree: '📝 Edit Note',
+            editorTitleCalendarPrefix: '📅 ',
+            editorTitleCalendarSuffix: ' Note',
+            undoTitle: 'Undo (Ctrl+Z)',
+            redoTitle: 'Redo (Ctrl+Y)',
+            contentPlaceholder: 'Type your note...',
+            backAria: 'Back',
+
+            allMemosViewTitle: '📋 All Notes',
+
+            yearSuffix: '',
+            monthSuffix: '',
+            yearPickerTitle: 'Click to jump to a year',
+
+            alertEnterPassword: 'Please enter a password.',
+            alertPasswordSetSuccess: 'Password set successfully.',
+            alertPasswordWrong: 'Incorrect password.',
+            alertPasswordMismatch: 'Passwords do not match.',
+            alertLockOffNotice: 'From now on, the app will open without asking for a password.',
+            alertLockOnNotice: 'From now on, the app will ask for a password on startup.',
+            alertCurrentPasswordWrong: 'Current password is incorrect.',
+            alertPasswordChanged: 'Password changed successfully.',
+            alertMemoRestored: 'Note restored.',
+            alertSelectDate: 'Please select a date.',
+            alertNoMemosToSave: 'No notes to back up.',
+            alertInvalidBackupFile: 'Could not find a valid encrypted backup file.',
+            alertWrongPasswordOrCorrupt: 'Incorrect password or the file is corrupted.',
+            alertRestoreSuccess: 'Restored successfully!',
+            alertFileLoadError: 'An error occurred while loading the file.',
+            alertInvalidYear: 'Please enter a valid year (e.g. 2027).',
+
+            confirmDeleteTrashPermanent: 'Permanently delete this from trash? This cannot be undone.',
+            confirmEmptyTrash: 'Empty the trash completely? All deleted notes will be permanently removed.',
+            confirmMoveToTrash: 'Move this note to trash?',
+            confirmMergeBackup: 'Backup data loaded. Merge it with your current notes?',
+            confirmResetPassword: 'Reset your password and set a new one?\n\n· Your notes (calendar/free notes) will be kept as-is.\n· However, encrypted backup files (.html) made with the old password will no longer open with the new one.\n· After resetting, you\'ll register a new password just like the first time you used the app.',
+
+            promptCurrentPasswordForLockOff: 'For security, please enter your current password:',
+            promptCurrentPassword: 'Please enter your current password:',
+            promptNewPassword: 'Please enter a new password:',
+            promptBackupPassword: 'Enter a password to encrypt the backup:',
+            promptDecryptPassword: 'Enter the password to decrypt the backup file:',
+            promptYear: 'Enter the year to jump to (e.g. 2027):',
+
+            exitToastMsg: 'Press back again to exit'
+        },
+        zh: {
+            lockTitleUnlock: '🔒 解锁备忘录',
+            lockDescUnlock: '请输入密码。',
+            lockTitleSetup: '🔑 初始密码设置',
+            lockDescSetup: '请设置用于备忘录的密码。',
+            lockTitleReset: '🔑 设置新密码',
+            lockDescReset: '请设置用于备忘录的新密码。',
+            lockBtnRegister: '注册密码',
+            lockBtnConfirm: '确认',
+            lockPasswordPlaceholder: '输入密码',
+            lockForgot: '忘记密码了吗？',
+
+            navMemo: '备忘录', navCalendar: '日历', navSearch: '搜索', navSettings: '设置',
+            tabTitleFree: '📝 备忘录', tabTitleCalendar: '📅 日历', tabTitleSearch: '🔍 搜索', tabTitleSettings: '⚙️ 设置',
+            prevMonth: '上个月', nextMonth: '下个月',
+
+            sortByCreated: '按创建时间', sortByTitle: '按标题',
+            sortByDateEmoji: '📅 按日期', sortByTitleEmoji: '🔤 按标题',
+            emptyMemoList: '暂无备忘录。',
+            newMemoAria: '新建备忘录',
+
+            clearSearchTitle: '清除搜索',
+            searchResultDefaultTitle: '搜索结果',
+            noSearchResults: '没有找到结果。',
+            searchPlaceholder: '搜索备忘录 (例如: 会议)',
+
+            btnAllMemos: '查看全部备忘录',
+            btnTrash: '🗑️ 回收站',
+            secTitleSecurity: '🔑 安全管理',
+            lockToggleLabel: '启动时确认密码',
+            lockToggleDesc: '关闭后，应用启动时将直接打开，无需锁屏。',
+            btnChangePassword: '更改密码',
+            secTitleBackup: '🔒 加密备份保存 (.html)',
+            btnBackupRange: '按期间备份',
+            btnBackupAll: '全部备份',
+            secTitleRestore: '📂 导入备份文件 (.html)',
+            btnOpenBackupFile: '打开备份文件',
+
+            trashViewTitle: '🗑️ 回收站',
+            btnEmptyTrash: '清空',
+            emptyTrashMsg: '回收站是空的。',
+            btnRestore: '恢复',
+            btnDelete: '删除',
+
+            editorTitleNew: '📝 新建备忘录',
+            editorTitleEditFree: '📝 编辑备忘录',
+            editorTitleCalendarPrefix: '📅 ',
+            editorTitleCalendarSuffix: ' 备忘录',
+            undoTitle: '撤销 (Ctrl+Z)',
+            redoTitle: '重做 (Ctrl+Y)',
+            contentPlaceholder: '请输入内容...',
+            backAria: '返回',
+
+            allMemosViewTitle: '📋 全部备忘录',
+
+            yearSuffix: '年',
+            monthSuffix: '月',
+            yearPickerTitle: '点击跳转到指定年份',
+
+            alertEnterPassword: '请输入密码。',
+            alertPasswordSetSuccess: '密码设置成功。',
+            alertPasswordWrong: '密码不正确。',
+            alertPasswordMismatch: '密码不一致。',
+            alertLockOffNotice: '从下次启动开始，将无需确认密码即可打开应用。',
+            alertLockOnNotice: '从下次启动开始，需要确认密码才能打开应用。',
+            alertCurrentPasswordWrong: '当前密码不正确。',
+            alertPasswordChanged: '密码已更改。',
+            alertMemoRestored: '备忘录已恢复。',
+            alertSelectDate: '请选择日期。',
+            alertNoMemosToSave: '没有可备份的备忘录。',
+            alertInvalidBackupFile: '未找到有效的加密备份文件。',
+            alertWrongPasswordOrCorrupt: '密码不正确，或文件已损坏。',
+            alertRestoreSuccess: '恢复成功！',
+            alertFileLoadError: '加载文件时发生错误。',
+            alertInvalidYear: '请输入有效的年份。(例如: 2027)',
+
+            confirmDeleteTrashPermanent: '要从回收站中永久删除吗？此操作无法撤销。',
+            confirmEmptyTrash: '要彻底清空回收站吗？所有已删除的备忘录都将被永久删除。',
+            confirmMoveToTrash: '要将此备忘录移到回收站吗？',
+            confirmMergeBackup: '已加载备份数据。要与现有备忘录合并吗？',
+            confirmResetPassword: '要重置密码并设置新密码吗？\n\n· 备忘录中的内容(日历/自由备忘录)将保持不变。\n· 但是，使用旧密码创建的加密备份文件(.html)将无法用新密码打开。\n· 重置后，您需要像首次使用时一样重新注册新密码。',
+
+            promptCurrentPasswordForLockOff: '出于安全考虑，请输入当前密码：',
+            promptCurrentPassword: '请输入当前密码：',
+            promptNewPassword: '请输入要使用的新密码：',
+            promptBackupPassword: '请输入用于加密备份的密码：',
+            promptDecryptPassword: '请输入解密备份文件所需的密码：',
+            promptYear: '请输入要跳转的年份 (例如: 2027)：',
+
+            exitToastMsg: '再按一次即可退出'
+        },
+        ja: {
+            lockTitleUnlock: '🔒 メモ帳のロック解除',
+            lockDescUnlock: 'パスワードを入力してください。',
+            lockTitleSetup: '🔑 初期パスワード設定',
+            lockDescSetup: 'メモ帳で使用するパスワードを設定してください。',
+            lockTitleReset: '🔑 新しいパスワード設定',
+            lockDescReset: 'メモ帳で使用する新しいパスワードを設定してください。',
+            lockBtnRegister: 'パスワード登録',
+            lockBtnConfirm: '確認',
+            lockPasswordPlaceholder: 'パスワードを入力',
+            lockForgot: 'パスワードをお忘れですか？',
+
+            navMemo: 'メモ', navCalendar: 'カレンダー', navSearch: '検索', navSettings: '設定',
+            tabTitleFree: '📝 メモ', tabTitleCalendar: '📅 カレンダー', tabTitleSearch: '🔍 検索', tabTitleSettings: '⚙️ 設定',
+            prevMonth: '前の月', nextMonth: '次の月',
+
+            sortByCreated: '作成日時順', sortByTitle: 'タイトル順',
+            sortByDateEmoji: '📅 日付順', sortByTitleEmoji: '🔤 タイトル順',
+            emptyMemoList: '登録されたメモがありません。',
+            newMemoAria: '新規メモ作成',
+
+            clearSearchTitle: '検索をクリア',
+            searchResultDefaultTitle: '検索結果',
+            noSearchResults: '検索結果がありません。',
+            searchPlaceholder: 'メモを検索 (例: 会議)',
+
+            btnAllMemos: 'すべてのメモを見る',
+            btnTrash: '🗑️ ゴミ箱',
+            secTitleSecurity: '🔑 セキュリティ管理',
+            lockToggleLabel: '起動時にパスワードを確認',
+            lockToggleDesc: 'オフにすると、起動時にロック画面なしで直接開きます。',
+            btnChangePassword: 'パスワードを変更',
+            secTitleBackup: '🔒 暗号化バックアップ保存 (.html)',
+            btnBackupRange: '期間指定バックアップ',
+            btnBackupAll: 'すべてバックアップ',
+            secTitleRestore: '📂 バックアップファイルを読み込む (.html)',
+            btnOpenBackupFile: 'バックアップファイルを開く',
+
+            trashViewTitle: '🗑️ ゴミ箱',
+            btnEmptyTrash: '空にする',
+            emptyTrashMsg: 'ゴミ箱は空です。',
+            btnRestore: '復元',
+            btnDelete: '削除',
+
+            editorTitleNew: '📝 新規メモ作成',
+            editorTitleEditFree: '📝 メモを編集',
+            editorTitleCalendarPrefix: '📅 ',
+            editorTitleCalendarSuffix: ' のメモ',
+            undoTitle: '元に戻す (Ctrl+Z)',
+            redoTitle: 'やり直す (Ctrl+Y)',
+            contentPlaceholder: '内容を入力してください...',
+            backAria: '戻る',
+
+            allMemosViewTitle: '📋 すべてのメモ',
+
+            yearSuffix: '年',
+            monthSuffix: '月',
+            yearPickerTitle: 'タップして年を移動',
+
+            alertEnterPassword: 'パスワードを入力してください。',
+            alertPasswordSetSuccess: 'パスワードが正常に設定されました。',
+            alertPasswordWrong: 'パスワードが正しくありません。',
+            alertPasswordMismatch: 'パスワードが一致しません。',
+            alertLockOffNotice: '次回起動時から、パスワード確認なしでアプリが開きます。',
+            alertLockOnNotice: '次回起動時から、パスワード確認後にアプリが開きます。',
+            alertCurrentPasswordWrong: '現在のパスワードが一致しません。',
+            alertPasswordChanged: 'パスワードが変更されました。',
+            alertMemoRestored: 'メモが復元されました。',
+            alertSelectDate: '日付を選択してください。',
+            alertNoMemosToSave: 'バックアップするメモがありません。',
+            alertInvalidBackupFile: '有効な暗号化バックアップファイルが見つかりません。',
+            alertWrongPasswordOrCorrupt: 'パスワードが一致しないか、ファイルが破損しています。',
+            alertRestoreSuccess: '正常に復元されました！',
+            alertFileLoadError: 'ファイルの読み込み中にエラーが発生しました。',
+            alertInvalidYear: '有効な年を入力してください。(例: 2027)',
+
+            confirmDeleteTrashPermanent: 'ゴミ箱から完全に削除しますか？元に戻せません。',
+            confirmEmptyTrash: 'ゴミ箱を完全に空にしますか？削除されたメモがすべて完全に削除されます。',
+            confirmMoveToTrash: 'このメモをゴミ箱に移動しますか？',
+            confirmMergeBackup: 'バックアップデータを読み込みました。既存のメモと統合しますか？',
+            confirmResetPassword: 'パスワードをリセットして新しく設定しますか？\n\n・メモ帳内のメモ(カレンダー/フリーメモ)はそのまま維持されます。\n・ただし、以前のパスワードで作成した暗号化バックアップファイル(.html)は新しいパスワードでは開けません。\n・リセット後は、初めて使用する時のように新しいパスワードを登録することになります。',
+
+            promptCurrentPasswordForLockOff: 'セキュリティのため、現在のパスワードを入力してください：',
+            promptCurrentPassword: '現在のパスワードを入力してください：',
+            promptNewPassword: '新しく使用するパスワードを入力してください：',
+            promptBackupPassword: 'バックアップを暗号化するパスワードを入力してください：',
+            promptDecryptPassword: 'バックアップファイルの復号パスワードを入力してください：',
+            promptYear: '移動する年を入力してください (例: 2027)：',
+
+            exitToastMsg: 'もう一度押すと終了します'
+        }
+    };
+
+    function t(key) {
+        return (translations[currentLang] && translations[currentLang][key] !== undefined)
+            ? translations[currentLang][key]
+            : (translations.ko[key] !== undefined ? translations.ko[key] : key);
+    }
+
+    let dayNames = dayNamesByLang[currentLang] || dayNamesByLang.ko;
+
+    const tabOrder = ['tabFree', 'tabCalendar', 'tabSearch', 'tabSettings'];
+    const tabTitles = {
+        tabFree: t('tabTitleFree'),
+        tabCalendar: t('tabTitleCalendar'),
+        tabSearch: t('tabTitleSearch'),
+        tabSettings: t('tabTitleSettings')
+    };
+
+    function applyLanguage() {
+        document.documentElement.lang = currentLang;
+
+        document.getElementById('lockTitle').textContent = t('lockTitleUnlock');
+        document.getElementById('lockDesc').textContent = t('lockDescUnlock');
+        document.getElementById('lockBtn').textContent = t('lockBtnConfirm');
+        document.getElementById('appPasswordInput').placeholder = t('lockPasswordPlaceholder');
+        document.getElementById('lockForgotLink').textContent = t('lockForgot');
+
+        document.getElementById('headerTitle').textContent = tabTitles[activeTabId] || tabTitles.tabCalendar;
+
+        document.getElementById('navMemoBtn').setAttribute('aria-label', t('navMemo'));
+        document.getElementById('navCalendarBtn').setAttribute('aria-label', t('navCalendar'));
+        document.getElementById('navSearchBtn').setAttribute('aria-label', t('navSearch'));
+        document.getElementById('navSettingsBtn').setAttribute('aria-label', t('navSettings'));
+
+        document.getElementById('prevMonthBtn').setAttribute('aria-label', t('prevMonth'));
+        document.getElementById('nextMonthBtn').setAttribute('aria-label', t('nextMonth'));
+        document.getElementById('fabAddMemo').setAttribute('aria-label', t('newMemoAria'));
+
+        document.getElementById('optSortCreated').textContent = t('sortByCreated');
+        document.getElementById('optSortTitle1').textContent = t('sortByTitle');
+        document.getElementById('optSortDate2').textContent = t('sortByDateEmoji');
+        document.getElementById('optSortTitle2').textContent = t('sortByTitleEmoji');
+
+        document.getElementById('searchInput').placeholder = t('searchPlaceholder');
+        document.getElementById('clearSearchBtn').title = t('clearSearchTitle');
+        if (!document.getElementById('searchInput').value.trim()) {
+            document.getElementById('searchResultTitle').textContent = t('searchResultDefaultTitle');
+        }
+
+        document.getElementById('btnAllMemos').textContent = t('btnAllMemos');
+        document.getElementById('btnTrash').textContent = t('btnTrash');
+        document.getElementById('secTitleSecurity').textContent = t('secTitleSecurity');
+        document.getElementById('lockToggleLabel').textContent = t('lockToggleLabel');
+        document.getElementById('lockToggleDesc').textContent = t('lockToggleDesc');
+        document.getElementById('btnChangePassword').textContent = t('btnChangePassword');
+        document.getElementById('secTitleBackup').textContent = t('secTitleBackup');
+        document.getElementById('btnBackupRange').textContent = t('btnBackupRange');
+        document.getElementById('btnBackupAll').textContent = t('btnBackupAll');
+        document.getElementById('secTitleRestore').textContent = t('secTitleRestore');
+        document.getElementById('btnOpenBackupFile').textContent = t('btnOpenBackupFile');
+
+        document.getElementById('trashViewTitle').textContent = t('trashViewTitle');
+        document.getElementById('btnEmptyTrash').textContent = t('btnEmptyTrash');
+
+        document.getElementById('undoBtn').title = t('undoTitle');
+        document.getElementById('redoBtn').title = t('redoTitle');
+        document.getElementById('memoContentInput').placeholder = t('contentPlaceholder');
+        document.getElementById('deleteBtn').textContent = t('btnDelete');
+
+        document.getElementById('allMemosViewTitle').textContent = t('allMemosViewTitle');
+
+        document.getElementById('exitToast').textContent = t('exitToastMsg');
+
+        const langSelect = document.getElementById('languageSelect');
+        if (langSelect) langSelect.value = currentLang;
+    }
+
+    function changeLanguage(lang) {
+        currentLang = lang;
+        localStorage.setItem('appLanguage', lang);
+        dayNames = dayNamesByLang[lang] || dayNamesByLang.ko;
+        tabTitles.tabFree = t('tabTitleFree');
+        tabTitles.tabCalendar = t('tabTitleCalendar');
+        tabTitles.tabSearch = t('tabTitleSearch');
+        tabTitles.tabSettings = t('tabTitleSettings');
+
+        applyLanguage();
+
+        // 동적으로 렌더링되는 화면들도 새 언어로 다시 그림
+        renderCalendar();
+        renderFreeMemos();
+        renderTrash();
+        if (isAllMemosViewOpen) renderAllMemosView();
+        if (document.getElementById('searchInput').value.trim()) searchMemos();
+    }
 
     window.onload = function() {
+        initSwipeNavigation();
+        initModalDragScroll();
+        initBackButtonHandler();
+        initCalendarMemoSwipe();
+        pushRootGuard(); // 뒤로가기 두 번으로 종료하는 기능을 위한 히스토리 가드
+
+        applyLanguage();
+
         const savedHash = localStorage.getItem('appPasswordHash');
         if (!savedHash) {
-            document.getElementById('lockTitle').textContent = '🔑 초기 비밀번호 설정';
-            document.getElementById('lockDesc').textContent = '메모장에 사용할 비밀번호를 설정해 주세요.';
-            document.getElementById('lockBtn').textContent = '비밀번호 등록';
+            document.getElementById('lockTitle').textContent = t('lockTitleSetup');
+            document.getElementById('lockDesc').textContent = t('lockDescSetup');
+            document.getElementById('lockBtn').textContent = t('lockBtnRegister');
+            document.getElementById('lockForgotLink').style.display = 'none';
+            document.getElementById('appPasswordInput').focus();
+        } else if (!appLockEnabled) {
+            document.getElementById('lockScreen').style.display = 'none';
+            openMainContainer();
+        } else {
+            document.getElementById('appPasswordInput').focus();
         }
-        document.getElementById('appPasswordInput').focus();
 
         document.getElementById('memoContentInput').addEventListener('keydown', function(e) {
             if (e.ctrlKey || e.metaKey) {
@@ -499,30 +1313,289 @@
         });
     };
 
-    /* 탭 전환 함수 */
+    let exitArmed = false;
+    let exitArmTimer = null;
+
+    function pushRootGuard() {
+        history.pushState({ appRoot: true }, '');
+    }
+
+    function showExitToast() {
+        const toast = document.getElementById('exitToast');
+        if (!toast) return;
+        toast.classList.add('show');
+        clearTimeout(showExitToast._t);
+        showExitToast._t = setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    function tryExitApp() {
+        // 안드로이드 WebView 래퍼가 JS 인터페이스를 노출해 두었다면 그것을 통해 명시적으로 종료 시도.
+        // (Capacitor/Cordova 등 앱화 방식에 따라 다르므로 흔히 쓰이는 이름들을 순서대로 확인)
+        try {
+            if (window.Android && typeof window.Android.exitApp === 'function') {
+                window.Android.exitApp();
+                return;
+            }
+            if (window.AndroidBridge && typeof window.AndroidBridge.exitApp === 'function') {
+                window.AndroidBridge.exitApp();
+                return;
+            }
+            if (window.navigator && window.navigator.app && typeof window.navigator.app.exitApp === 'function') {
+                window.navigator.app.exitApp(); // Cordova
+                return;
+            }
+        } catch (e) { /* 무시 */ }
+        // 별도 네이티브 브릿지가 없는 일반 웹뷰/브라우저에서는, 재-push 하지 않은 채로 두어
+        // 이번 뒤로가기가 그대로 진행되도록 둔다 (웹뷰라면 액티비티 종료로 이어지는 경우가 많음).
+    }
+
+    function initBackButtonHandler() {
+        window.addEventListener('popstate', function(event) {
+            if (isFullscreenOpen) {
+                closeFullscreenMemo(true);
+            } else if (isAllMemosViewOpen) {
+                closeAllMemosView();
+            } else if (isTrashViewOpen) {
+                closeTrashView();
+            } else {
+                // 더 이상 열려있는 화면이 없는 최상위 상태: 두 번 연속 눌러야 종료되도록 처리
+                if (exitArmed) {
+                    exitArmed = false;
+                    clearTimeout(exitArmTimer);
+                    tryExitApp();
+                } else {
+                    exitArmed = true;
+                    showExitToast();
+                    pushRootGuard(); // 앱이 바로 종료되지 않도록 히스토리를 다시 쌓아둠
+                    clearTimeout(exitArmTimer);
+                    exitArmTimer = setTimeout(() => { exitArmed = false; }, 2000);
+                }
+            }
+        });
+    }
+
+    function showDialog(message, type, isPassword, defaultValue, inputType) {
+        return new Promise(function(resolve) {
+            const overlay = document.getElementById('customDialogOverlay');
+            const msgEl = document.getElementById('customDialogMessage');
+            const inputEl = document.getElementById('customDialogInput');
+            const okBtn = document.getElementById('customDialogOkBtn');
+            const cancelBtn = document.getElementById('customDialogCancelBtn');
+
+            msgEl.textContent = message;
+            overlay.style.display = 'flex';
+
+            if (type === 'prompt') {
+                inputEl.style.display = 'block';
+                inputEl.type = inputType || (isPassword ? 'password' : 'text');
+                inputEl.value = defaultValue || '';
+                setTimeout(function() { inputEl.focus(); inputEl.select(); }, 50);
+            } else {
+                inputEl.style.display = 'none';
+            }
+
+            cancelBtn.style.display = (type === 'alert') ? 'none' : 'inline-block';
+
+            function cleanup() {
+                overlay.style.display = 'none';
+                okBtn.onclick = null;
+                cancelBtn.onclick = null;
+                inputEl.onkeyup = null;
+            }
+
+            okBtn.onclick = function() {
+                let result;
+                if (type === 'prompt') result = inputEl.value.trim() || null;
+                else result = true;
+                cleanup();
+                resolve(result);
+            };
+
+            cancelBtn.onclick = function() {
+                cleanup();
+                resolve(type === 'prompt' ? null : false);
+            };
+
+            inputEl.onkeyup = function(e) {
+                if (e.key === 'Enter') okBtn.click();
+            };
+        });
+    }
+
+    function customAlert(message) { return showDialog(message, 'alert', false); }
+    function customConfirm(message) { return showDialog(message, 'confirm', false); }
+    function customPrompt(message, defaultValue) { return showDialog(message, 'prompt', true, defaultValue); }
+    function customTextPrompt(message, defaultValue) { return showDialog(message, 'prompt', false, defaultValue, 'text'); }
+
     function switchTab(tabId, titleText) {
+        const previousTabId = activeTabId;
+        const prevIndex = tabOrder.indexOf(previousTabId);
+        const newIndex = tabOrder.indexOf(tabId);
+
         document.querySelectorAll('.tab-panel').forEach(panel => {
-            panel.classList.remove('active');
+            panel.classList.remove('active', 'slide-from-right', 'slide-from-left', 'slide-from-bottom', 'slide-from-top');
         });
         document.querySelectorAll('.nav-item').forEach(btn => {
             btn.classList.remove('active');
         });
 
-        document.getElementById(tabId).classList.add('active');
-        document.getElementById('headerTitle').textContent = titleText;
+        const activePanel = document.getElementById(tabId);
+        activePanel.classList.add('active');
 
-        const navIndex = { 'tabFree': 0, 'tabCalendar': 1, 'tabSearch': 2, 'tabSettings': 3 };
-        document.querySelectorAll('.nav-item')[navIndex[tabId]].classList.add('active');
+        if (tabId !== previousTabId && prevIndex !== -1 && newIndex !== -1) {
+            activePanel.classList.add(newIndex > prevIndex ? 'slide-from-right' : 'slide-from-left');
+            activePanel.addEventListener('animationend', function handler() {
+                activePanel.classList.remove('slide-from-right', 'slide-from-left', 'slide-from-bottom', 'slide-from-top');
+                activePanel.removeEventListener('animationend', handler);
+            });
+        }
+
+        document.getElementById('headerTitle').textContent = titleText || tabTitles[tabId] || '';
+        document.querySelectorAll('.nav-item')[Math.max(newIndex, 0)].classList.add('active');
+        document.getElementById('fabAddMemo').classList.toggle('show', tabId === 'tabFree');
 
         if (tabId === 'tabSearch') {
             document.getElementById('searchInput').focus();
         }
+
+        if (tabId === 'tabCalendar' && previousTabId !== 'tabCalendar') {
+            const today = new Date();
+            if (currentDate.getFullYear() !== today.getFullYear() || currentDate.getMonth() !== today.getMonth()) {
+                currentDate = today;
+                renderCalendar();
+            }
+        }
+
+        activeTabId = tabId;
     }
 
-    function unlockApp() {
+    let suppressNextClick = false;
+    document.addEventListener('click', (e) => {
+        if (suppressNextClick) {
+            suppressNextClick = false;
+            e.stopPropagation();
+            e.preventDefault();
+        }
+    }, true);
+
+    function initSwipeNavigation() {
+        const swipeArea = document.getElementById('mainContainer');
+        let startX = 0, startY = 0, lastY = 0, tracking = false;
+        let gestureMode = null;
+        const THRESHOLD = 55;
+        const LOCK_THRESHOLD = 10;
+
+        function isInteractiveTarget(target) {
+            return !!target.closest('input, textarea, select, .switch');
+        }
+
+        function anyModalOpen() {
+            return isFullscreenOpen
+                || document.getElementById('customDialogOverlay').style.display === 'flex'
+                || document.getElementById('allMemosView').style.display === 'flex'
+                || document.getElementById('trashView').style.display === 'flex';
+        }
+
+        swipeArea.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
+            if (anyModalOpen()) { tracking = false; return; }
+            if (isInteractiveTarget(e.target)) { tracking = false; return; }
+            startX = e.clientX;
+            startY = e.clientY;
+            lastY = e.clientY;
+            gestureMode = null;
+            tracking = true;
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!tracking) return;
+            const totalDx = e.clientX - startX;
+            const totalDy = e.clientY - startY;
+
+            if (gestureMode === null && (Math.abs(totalDx) > LOCK_THRESHOLD || Math.abs(totalDy) > LOCK_THRESHOLD)) {
+                if (activeTabId === 'tabCalendar' && Math.abs(totalDy) > Math.abs(totalDx)) {
+                    gestureMode = 'calendar-vertical';
+                } else {
+                    gestureMode = Math.abs(totalDx) > Math.abs(totalDy) ? 'horizontal' : 'vertical';
+                }
+                if (gestureMode === 'vertical') suppressNextClick = true;
+            }
+
+            if (gestureMode === 'vertical') {
+                const stepDy = e.clientY - lastY;
+                window.scrollBy(0, -stepDy);
+            }
+
+            lastY = e.clientY;
+        });
+
+        window.addEventListener('pointerup', (e) => {
+            if (!tracking) return;
+            tracking = false;
+
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+
+            if (gestureMode === 'horizontal') {
+                if (Math.abs(dx) >= THRESHOLD && Math.abs(dx) >= Math.abs(dy) * 1.3) {
+                    const curIndex = tabOrder.indexOf(activeTabId);
+                    let nextIndex = curIndex;
+                    if (dx < 0 && curIndex < tabOrder.length - 1) nextIndex = curIndex + 1;
+                    if (dx > 0 && curIndex > 0) nextIndex = curIndex - 1;
+
+                    if (nextIndex !== curIndex) {
+                        const nextTabId = tabOrder[nextIndex];
+                        switchTab(nextTabId, tabTitles[nextTabId]);
+                    }
+                }
+            } else if (gestureMode === 'calendar-vertical') {
+                if (Math.abs(dy) >= THRESHOLD && Math.abs(dy) >= Math.abs(dx)) {
+                    if (dy > 0) {
+                        changeMonth(-1, 'down');
+                    } else {
+                        changeMonth(1, 'up');
+                    }
+                }
+            }
+            gestureMode = null;
+        });
+
+        window.addEventListener('pointercancel', () => { tracking = false; gestureMode = null; });
+    }
+
+    function initModalDragScroll() {
+        const grid = document.getElementById('allMemosGrid');
+        if (!grid) return;
+        let dragging = false, lastY = 0, startY = 0;
+        const LOCK_THRESHOLD = 6;
+        let moved = false;
+
+        grid.addEventListener('pointerdown', (e) => {
+            dragging = true;
+            moved = false;
+            startY = e.clientY;
+            lastY = e.clientY;
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!dragging) return;
+            const stepDy = e.clientY - lastY;
+            if (!moved && Math.abs(e.clientY - startY) > LOCK_THRESHOLD) {
+                moved = true;
+                suppressNextClick = true;
+            }
+            if (moved) grid.scrollTop -= stepDy;
+            lastY = e.clientY;
+        });
+
+        window.addEventListener('pointerup', () => { dragging = false; });
+        window.addEventListener('pointercancel', () => { dragging = false; });
+    }
+
+    async function unlockApp() {
         const inputPwd = document.getElementById('appPasswordInput').value.trim();
         if (!inputPwd) {
-            alert('비밀번호를 입력해 주세요.');
+            await customAlert(t('alertEnterPassword'));
             return;
         }
 
@@ -531,101 +1604,262 @@
 
         if (!savedHash) {
             localStorage.setItem('appPasswordHash', inputHash);
-            alert('비밀번호가 성공적으로 설정되었습니다.');
+            localStorage.setItem('backupPassword', inputPwd); // 잠금 화면을 꺼둬도 자동 백업이 가능하도록 보관
             loggedInPassword = inputPwd;
             openMainContainer();
+            await customAlert(t('alertPasswordSetSuccess'));
         } else if (savedHash === inputHash) {
             loggedInPassword = inputPwd;
             openMainContainer();
         } else {
-            alert('비밀번호가 올바르지 않습니다.');
+            await customAlert(t('alertPasswordWrong'));
             document.getElementById('appPasswordInput').value = '';
             document.getElementById('appPasswordInput').focus();
         }
     }
 
+    /* 비밀번호를 잊었을 때: 완전히 초기화하고 새 비밀번호를 등록 */
+    async function resetForgottenPassword() {
+        const confirmed = await customConfirm(t('confirmResetPassword'));
+        if (!confirmed) return;
+
+        localStorage.removeItem('appPasswordHash');
+        localStorage.removeItem('backupPassword');
+        loggedInPassword = '';
+
+        document.getElementById('lockTitle').textContent = t('lockTitleReset');
+        document.getElementById('lockDesc').textContent = t('lockDescReset');
+        document.getElementById('lockBtn').textContent = t('lockBtnRegister');
+        document.getElementById('lockForgotLink').style.display = 'none';
+        document.getElementById('appPasswordInput').value = '';
+        document.getElementById('appPasswordInput').focus();
+    }
+
     function openMainContainer() {
         document.getElementById('lockScreen').style.display = 'none';
         document.getElementById('mainContainer').style.display = 'block';
+        const toggle = document.getElementById('appLockToggle');
+        if (toggle) toggle.checked = appLockEnabled;
         renderCalendar();
         renderFreeMemos();
         renderTrash();
+
+        runStartupAutoBackup();
     }
 
-    function changeAppPassword() {
-        const oldPwd = prompt('현재 비밀번호를 입력해 주세요:');
+    /* 프로그램 시작 시 자동 백업: 하루 한 번, 비밀번호가 확인된 세션에서만 조용히 실행 */
+    async function runStartupAutoBackup() {
+        const backupPassword = loggedInPassword || localStorage.getItem('backupPassword');
+        if (!backupPassword) return; // 저장된 비밀번호가 전혀 없으면(첫 실행 등) 건너뜀
+        if (Object.keys(memos).length === 0 && freeMemos.length === 0) return; // 백업할 메모가 없음
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (localStorage.getItem('lastAutoBackupDate') === todayStr) return; // 오늘 이미 백업함
+
+        await exportEncryptedHtml(true);
+        localStorage.setItem('lastAutoBackupDate', todayStr);
+    }
+
+    async function toggleAppLock() {
+        const toggle = document.getElementById('appLockToggle');
+        const savedHash = localStorage.getItem('appPasswordHash');
+
+        if (!toggle.checked) {
+            const pwd = await customPrompt(t('promptCurrentPasswordForLockOff'));
+            if (pwd === null) {
+                toggle.checked = true;
+                return;
+            }
+            if (!savedHash || CryptoJS.SHA256(pwd).toString() !== savedHash) {
+                await customAlert(t('alertPasswordMismatch'));
+                toggle.checked = true;
+                return;
+            }
+            appLockEnabled = false;
+            localStorage.setItem('appLockEnabled', 'false');
+            await customAlert(t('alertLockOffNotice'));
+        } else {
+            appLockEnabled = true;
+            localStorage.setItem('appLockEnabled', 'true');
+            await customAlert(t('alertLockOnNotice'));
+        }
+    }
+
+    async function changeAppPassword() {
+        const oldPwd = await customPrompt(t('promptCurrentPassword'));
         if (!oldPwd) return;
 
         const savedHash = localStorage.getItem('appPasswordHash');
         if (CryptoJS.SHA256(oldPwd).toString() !== savedHash) {
-            alert('현재 비밀번호가 일치하지 않습니다.');
+            await customAlert(t('alertCurrentPasswordWrong'));
             return;
         }
 
-        const newPwd = prompt('새로 사용할 비밀번호를 입력해 주세요:');
+        const newPwd = await customPrompt(t('promptNewPassword'));
         if (!newPwd) return;
 
         localStorage.setItem('appPasswordHash', CryptoJS.SHA256(newPwd).toString());
+        localStorage.setItem('backupPassword', newPwd); // 자동 백업용 저장값도 최신 비밀번호로 갱신
         loggedInPassword = newPwd;
-        alert('비밀번호가 변경되었습니다.');
+        await customAlert(t('alertPasswordChanged'));
     }
 
-    /* 자유 메모 목록 */
-    function renderFreeMemos() {
-        const grid = document.getElementById('freeMemosGrid');
-        const countSpan = document.getElementById('freeMemoCount');
-        grid.innerHTML = '';
-        countSpan.textContent = freeMemos.length;
+    function getAllMemoItems() {
+        const items = [];
+        Object.keys(memos).forEach(dateKey => {
+            const content = memos[dateKey];
+            if (content && content.trim() !== '') {
+                items.push({ type: 'calendar', key: dateKey, date: dateKey, content: content });
+            }
+        });
+        freeMemos.forEach(memo => {
+            if (memo.content && memo.content.trim() !== '') {
+                items.push({ type: 'free', id: memo.id, date: memo.date, content: memo.content });
+            }
+        });
 
-        if (freeMemos.length === 0) {
-            grid.innerHTML = '<div class="empty-msg">등록된 자유 메모가 없습니다.</div>';
+        if (allMemosSortBy === 'title') {
+            items.sort((a, b) => a.content.trim().localeCompare(b.content.trim(), 'ko'));
+        } else {
+            items.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+        }
+        return items;
+    }
+
+    function setAllMemosSort(mode) {
+        allMemosSortBy = mode;
+        document.getElementById('allMemosSortSelect').value = mode;
+        renderAllMemosView();
+    }
+
+    function renderAllMemosView() {
+        const grid = document.getElementById('allMemosGrid');
+        const items = getAllMemoItems();
+        grid.innerHTML = '';
+
+        if (items.length === 0) {
+            grid.innerHTML = `<div class="empty-msg">${t('emptyMemoList')}</div>`;
             return;
         }
 
-        freeMemos.forEach(memo => {
+        items.forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'result-item clickable';
+            const isFree = item.type === 'free';
+            row.onclick = () => {
+                // 모든 메모 화면에서 편집화면으로 바로 전환: history.back() 이후 곧바로
+                // pushState 하면 비동기 처리 순서가 꼬여 편집화면이 즉시 닫히는 문제가 있어,
+                // 화면만 닫고 히스토리 항목은 교체(replace)하는 방식으로 전환한다.
+                document.getElementById('allMemosView').style.display = 'none';
+                isAllMemosViewOpen = false;
+                if (isFree) openFreeMemoModal(item.id, true);
+                else openCalendarModal(item.key, true);
+            };
+
+            row.innerHTML = `
+                <span class="item-text">${escapeHtml(item.content)}</span>
+                <span class="result-date">${escapeHtml(formatListDate(item.date))}</span>
+            `;
+            grid.appendChild(row);
+        });
+    }
+
+    function openAllMemosView() {
+        renderAllMemosView();
+        document.getElementById('allMemosView').style.display = 'flex';
+        isAllMemosViewOpen = true;
+        history.pushState({ allMemosView: true }, '');
+    }
+
+    function closeAllMemosView() {
+        if (!isAllMemosViewOpen) return;
+
+        document.getElementById('allMemosView').style.display = 'none';
+        isAllMemosViewOpen = false;
+
+        if (window.history.state && window.history.state.allMemosView) {
+            history.back();
+        }
+    }
+
+    function openTrashView() {
+        renderTrash();
+        document.getElementById('trashView').style.display = 'flex';
+        isTrashViewOpen = true;
+        history.pushState({ trashView: true }, '');
+    }
+
+    function closeTrashView() {
+        if (!isTrashViewOpen) return;
+
+        document.getElementById('trashView').style.display = 'none';
+        isTrashViewOpen = false;
+
+        if (window.history.state && window.history.state.trashView) {
+            history.back();
+        }
+    }
+
+    function changeFreeMemoSort() {
+        freeMemoSortBy = document.getElementById('freeMemoSortSelect').value;
+        renderFreeMemos();
+    }
+
+    function renderFreeMemos() {
+        const grid = document.getElementById('freeMemosGrid');
+        grid.innerHTML = '';
+
+        let sortedMemos = [...freeMemos];
+        if (freeMemoSortBy === 'title') {
+            sortedMemos.sort((a, b) => a.content.trim().localeCompare(b.content.trim(), 'ko'));
+        } else {
+            sortedMemos.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        }
+
+        if (sortedMemos.length === 0) {
+            grid.innerHTML = `<div class="empty-msg">${t('emptyMemoList')}</div>`;
+            return;
+        }
+
+        sortedMemos.forEach(memo => {
             const item = document.createElement('div');
             item.className = 'result-item clickable';
             item.onclick = () => openFreeMemoModal(memo.id);
 
             item.innerHTML = `
-                <span class="result-date free-tag">📅 ${memo.date}</span>
                 <span class="item-text">${escapeHtml(memo.content)}</span>
+                <span class="result-date">${escapeHtml(formatListDate(memo.date))}</span>
             `;
             grid.appendChild(item);
         });
     }
 
-    /* 휴지통 목록 */
     function renderTrash() {
         const trashContainer = document.getElementById('trashListContainer');
-        const trashCount = document.getElementById('trashCount');
         trashContainer.innerHTML = '';
-        trashCount.textContent = deletedMemos.length;
 
         if (deletedMemos.length === 0) {
-            trashContainer.innerHTML = '<div class="empty-msg">휴지통이 비어 있습니다.</div>';
+            trashContainer.innerHTML = `<div class="empty-msg">${t('emptyTrashMsg')}</div>`;
             return;
         }
 
         deletedMemos.forEach((item, index) => {
             const row = document.createElement('div');
-            row.className = 'result-item';
-
             const dateStr = item.type === 'calendar' ? item.key : item.date;
-
+            row.className = 'result-item';
             row.innerHTML = `
-                <span class="result-date trash-tag">📅 ${dateStr}</span>
                 <span class="item-text">${escapeHtml(item.content)}</span>
+                <span class="result-date">${escapeHtml(formatListDate(dateStr))}</span>
                 <div class="item-actions">
-                    <button class="btn btn-success btn-sm" onclick="restoreMemo(${index})">복구</button>
-                    <button class="btn btn-danger btn-sm" onclick="deletePermanently(${index})">삭제</button>
+                    <button class="btn btn-success btn-sm" onclick="restoreMemo(${index})">${t('btnRestore')}</button>
+                    <button class="btn btn-danger btn-sm" onclick="deletePermanently(${index})">${t('btnDelete')}</button>
                 </div>
             `;
             trashContainer.appendChild(row);
         });
     }
 
-    function restoreMemo(index) {
+    async function restoreMemo(index) {
         const item = deletedMemos[index];
         if (!item) return;
 
@@ -642,27 +1876,26 @@
         deletedMemos.splice(index, 1);
         localStorage.setItem('simpleDeletedMemos', JSON.stringify(deletedMemos));
         renderTrash();
-        alert('메모가 원상복구 되었습니다.');
+        await customAlert(t('alertMemoRestored'));
     }
 
-    function deletePermanently(index) {
-        if (confirm('휴지통에서 영구히 삭제하시겠습니까? 복구할 수 없습니다.')) {
+    async function deletePermanently(index) {
+        if (await customConfirm(t('confirmDeleteTrashPermanent'))) {
             deletedMemos.splice(index, 1);
             localStorage.setItem('simpleDeletedMemos', JSON.stringify(deletedMemos));
             renderTrash();
         }
     }
 
-    function emptyTrash() {
+    async function emptyTrash() {
         if (deletedMemos.length === 0) return;
-        if (confirm('휴지통을 완전히 비우시겠습니까? 모든 삭제된 메모가 영구 삭제됩니다.')) {
+        if (await customConfirm(t('confirmEmptyTrash'))) {
             deletedMemos = [];
             localStorage.setItem('simpleDeletedMemos', JSON.stringify(deletedMemos));
             renderTrash();
         }
     }
 
-    /* Undo/Redo 로직 */
     function initUndoRedo(initialText) {
         undoStack = [initialText];
         redoStack = [];
@@ -699,12 +1932,12 @@
         }
     }
 
-    function openFreeMemoModal(id = null) {
+    function openFreeMemoModal(id = null, replaceHistory = false) {
         isFreeMemoMode = true;
         selectedDateKey = '';
         selectedFreeMemoId = id;
 
-        const modal = document.getElementById('memoModal');
+        const view = document.getElementById('memoFullscreenView');
         const textarea = document.getElementById('memoContentInput');
         const title = document.getElementById('modalTitle');
         const deleteBtn = document.getElementById('deleteBtn');
@@ -712,11 +1945,11 @@
         let initialText = '';
         if (id !== null) {
             const memo = freeMemos.find(m => m.id === id);
-            title.textContent = '📝 자유 메모 수정';
+            title.textContent = t('editorTitleEditFree');
             initialText = memo ? memo.content : '';
             deleteBtn.style.display = 'inline-block';
         } else {
-            title.textContent = '📝 새 자유 메모 작성';
+            title.textContent = t('editorTitleNew');
             initialText = '';
             deleteBtn.style.display = 'none';
         }
@@ -724,81 +1957,113 @@
         textarea.value = initialText;
         initUndoRedo(initialText);
 
-        modal.style.display = 'flex';
+        view.style.display = 'flex';
+        isFullscreenOpen = true;
+
+        if (replaceHistory) {
+            history.replaceState({ fullscreenMemo: true }, '');
+        } else {
+            history.pushState({ fullscreenMemo: true }, '');
+        }
         textarea.focus();
     }
 
-    /* 달력 메모 */
-    function renderCalendar() {
-        const grid = document.getElementById('calendarGrid');
-        grid.innerHTML = '';
-
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
-
-        document.getElementById('currentMonthYear').textContent = `${year}년 ${month + 1}월`;
-
-        dayNames.forEach(day => {
-            const header = document.createElement('div');
-            header.className = 'day-header';
-            header.textContent = day;
-            grid.appendChild(header);
-        });
-
-        const firstDay = new Date(year, month, 1).getDay();
-        const lastDate = new Date(year, month + 1, 0).getDate();
-
-        for (let i = 0; i < firstDay; i++) {
-            const emptyCell = document.createElement('div');
-            emptyCell.className = 'day-cell empty';
-            grid.appendChild(emptyCell);
-        }
-
-        for (let date = 1; date <= lastDate; date++) {
-            const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
-            const cell = document.createElement('div');
-            cell.className = 'day-cell';
-            
-            const dayNum = document.createElement('div');
-            dayNum.className = 'day-number';
-            dayNum.textContent = date;
-            cell.appendChild(dayNum);
-
-            if (memos[dateKey] && memos[dateKey].trim() !== '') {
-                const dot = document.createElement('div');
-                dot.className = 'postit-dot';
-                cell.appendChild(dot);
-            }
-
-            cell.addEventListener('click', () => openCalendarModal(dateKey));
-            grid.appendChild(cell);
-        }
-    }
-
-    function openCalendarModal(dateKey) {
+    function openCalendarModal(dateKey, replaceHistory = false) {
         isFreeMemoMode = false;
         selectedDateKey = dateKey;
         selectedFreeMemoId = null;
 
-        const modal = document.getElementById('memoModal');
+        const view = document.getElementById('memoFullscreenView');
         const existingContent = memos[dateKey] || '';
 
-        document.getElementById('modalTitle').textContent = `📅 ${dateKey} 메모`;
+        document.getElementById('modalTitle').textContent = t('editorTitleCalendarPrefix') + dateKey + t('editorTitleCalendarSuffix');
         const textarea = document.getElementById('memoContentInput');
         textarea.value = existingContent;
         initUndoRedo(existingContent);
 
         document.getElementById('deleteBtn').style.display = existingContent ? 'inline-block' : 'none';
 
-        modal.style.display = 'flex';
+        view.style.display = 'flex';
+        isFullscreenOpen = true;
+
+        if (replaceHistory) {
+            history.replaceState({ fullscreenMemo: true }, '');
+        } else {
+            history.pushState({ fullscreenMemo: true }, '');
+        }
         textarea.focus();
     }
 
-    function closeModal() {
-        document.getElementById('memoModal').style.display = 'none';
+    /* 달력 메모 화면에서 좌우로 스와이프하면 전날/다음날 메모로 이동 */
+    function goToAdjacentCalendarDay(offset) {
+        if (isFreeMemoMode || !selectedDateKey) return;
+
+        // 이동하기 전에 현재 내용을 먼저 저장 (뒤로가기와 동일하게 자동 저장)
+        saveMemoInternal();
+
+        const d = new Date(selectedDateKey + 'T00:00:00');
+        d.setDate(d.getDate() + offset);
+        const newKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+        // 히스토리를 새로 쌓지 않고 교체해서, 여러 날짜를 넘나들어도 뒤로가기 한 번에 목록으로 돌아가게 함
+        openCalendarModal(newKey, true);
     }
 
-    function saveMemo() {
+    function initCalendarMemoSwipe() {
+        const view = document.getElementById('memoFullscreenView');
+        let startX = 0, startY = 0, tracking = false, gestureMode = null;
+        const THRESHOLD = 60;
+        const LOCK_THRESHOLD = 12;
+
+        view.addEventListener('pointerdown', (e) => {
+            if (!isFullscreenOpen || isFreeMemoMode) { tracking = false; return; }
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
+            startX = e.clientX;
+            startY = e.clientY;
+            gestureMode = null;
+            tracking = true;
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!tracking) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            if (gestureMode === null && (Math.abs(dx) > LOCK_THRESHOLD || Math.abs(dy) > LOCK_THRESHOLD)) {
+                gestureMode = Math.abs(dx) > Math.abs(dy) ? 'horizontal' : 'vertical';
+            }
+        });
+
+        window.addEventListener('pointerup', (e) => {
+            if (!tracking) return;
+            tracking = false;
+            if (gestureMode !== 'horizontal') return;
+
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            if (Math.abs(dx) < THRESHOLD || Math.abs(dx) < Math.abs(dy) * 1.3) return;
+
+            goToAdjacentCalendarDay(dx < 0 ? 1 : -1); // 왼쪽으로 스와이프 -> 다음날, 오른쪽으로 스와이프 -> 전날
+        });
+
+        window.addEventListener('pointercancel', () => { tracking = false; gestureMode = null; });
+    }
+
+    function closeFullscreenMemo(save = true) {
+        if (!isFullscreenOpen) return;
+
+        if (save) {
+            saveMemoInternal();
+        }
+
+        document.getElementById('memoFullscreenView').style.display = 'none';
+        isFullscreenOpen = false;
+
+        if (window.history.state && window.history.state.fullscreenMemo) {
+            history.back();
+        }
+    }
+
+    function saveMemoInternal() {
         const content = document.getElementById('memoContentInput').value.trim();
 
         if (isFreeMemoMode) {
@@ -816,6 +2081,9 @@
                     freeMemos.unshift({ id: Date.now(), content: content, date: nowStr });
                 }
                 localStorage.setItem('simpleFreeMemos', JSON.stringify(freeMemos));
+            } else if (selectedFreeMemoId !== null) {
+                freeMemos = freeMemos.filter(m => m.id !== selectedFreeMemoId);
+                localStorage.setItem('simpleFreeMemos', JSON.stringify(freeMemos));
             }
             renderFreeMemos();
         } else if (selectedDateKey) {
@@ -828,12 +2096,15 @@
             renderCalendar();
         }
 
-        closeModal();
         if (document.getElementById('searchInput').value.trim()) searchMemos();
     }
 
-    function deleteMemo() {
-        if (!confirm('이 메모를 휴지통으로 이동하시겠습니까?')) return;
+    function saveMemo() {
+        closeFullscreenMemo(true);
+    }
+
+    async function deleteMemo() {
+        if (!(await customConfirm(t('confirmMoveToTrash')))) return;
 
         if (isFreeMemoMode && selectedFreeMemoId !== null) {
             const target = freeMemos.find(m => m.id === selectedFreeMemoId);
@@ -856,56 +2127,216 @@
         localStorage.setItem('simpleDeletedMemos', JSON.stringify(deletedMemos));
         renderTrash();
 
-        closeModal();
+        isFullscreenOpen = false;
+        document.getElementById('memoFullscreenView').style.display = 'none';
+        if (window.history.state && window.history.state.fullscreenMemo) {
+            history.back();
+        }
         if (document.getElementById('searchInput').value.trim()) searchMemos();
     }
 
+    const monthNamesEn = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    function renderCalendar() {
+        const grid = document.getElementById('calendarGrid');
+        grid.innerHTML = '';
+
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+
+        const yearLabel = currentLang === 'en' ? String(year) : `${year}${t('yearSuffix')}`;
+        const monthLabel = currentLang === 'en' ? monthNamesEn[month] : `${month + 1}${t('monthSuffix')}`;
+        const headerHtml = `<span class="year-picker" onclick="pickYear()" title="${t('yearPickerTitle')}">${yearLabel}</span> ${monthLabel}`;
+
+        document.getElementById('currentMonthYear').innerHTML =
+            currentLang === 'en' ? `${monthLabel} <span class="year-picker" onclick="pickYear()" title="${t('yearPickerTitle')}">${yearLabel}</span>` : headerHtml;
+
+        dayNames.forEach((day, idx) => {
+            const header = document.createElement('div');
+            header.className = 'day-header' + (idx === 0 ? ' sunday-color' : idx === 6 ? ' saturday-color' : '');
+            header.textContent = day;
+            grid.appendChild(header);
+        });
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const lastDate = new Date(year, month + 1, 0).getDate();
+        const todayKey = (() => {
+            const t = new Date();
+            return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+        })();
+
+        for (let i = 0; i < firstDay; i++) {
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'day-cell empty';
+            grid.appendChild(emptyCell);
+        }
+
+        for (let date = 1; date <= lastDate; date++) {
+            const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+            const dow = new Date(year, month, date).getDay(); // 0=일요일, 6=토요일
+
+            const cell = document.createElement('div');
+            cell.className = 'day-cell' + (dateKey === todayKey ? ' today' : '');
+            
+            const dayNum = document.createElement('div');
+            dayNum.className = 'day-number' +
+                (dow === 0 ? ' sunday-color' : (dow === 6 ? ' saturday-color' : ''));
+            dayNum.textContent = date;
+            cell.appendChild(dayNum);
+
+            if (memos[dateKey] && memos[dateKey].trim() !== '') {
+                const dot = document.createElement('div');
+                dot.className = 'postit-dot';
+                cell.appendChild(dot);
+            }
+
+            cell.addEventListener('click', () => openCalendarModal(dateKey));
+            grid.appendChild(cell);
+        }
+    }
+
+    function extractSearchKeyword(raw) {
+        let text = raw.trim();
+        if (!text) return '';
+        const looksLikeSentence = /(검색|찾아|보여|알려|라는|글자|단어|키워드|텍스트|문구|포함|들어간|들어있는)/.test(text);
+        if (!looksLikeSentence) return text;
+        let keyword = text;
+        keyword = keyword.replace(/(을|를)?\s*(검색|찾아|보여|알려)\s*(해)?\s*(줘|줄래|줄래요|주라|주세요|봐줘|봐요|봐)?\.?\s*$/, '');
+        keyword = keyword.replace(/(메모|노트|일정|내용)\s*(를|은|는|이|가|에|에서)?\s*$/, '');
+        keyword = keyword.replace(/(들어\s*있는|들어간|포함된|포함하는|있는)\s*$/, '');
+        keyword = keyword.replace(/(글자|단어|키워드|텍스트|문구)\s*(가|이)?\s*$/, '');
+        keyword = keyword.replace(/(이)?라는\s*$/, '');
+        return keyword.trim() || text;
+    }
+
+    function parseDateToken(rawToken) {
+        const t = rawToken.trim().replace(/\.$/, '');
+        let m = t.match(/^(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})$/);
+        if (m) {
+            const mm = m[2].padStart(2, '0');
+            const dd = m[3].padStart(2, '0');
+            if (Number(mm) >= 1 && Number(mm) <= 12 && Number(dd) >= 1 && Number(dd) <= 31) {
+                return { type: 'full', value: `${m[1]}-${mm}-${dd}` };
+            }
+        }
+        m = t.match(/^(\d{1,2})[.\-\/](\d{1,2})$/);
+        if (m) {
+            const mm = m[1].padStart(2, '0');
+            const dd = m[2].padStart(2, '0');
+            if (Number(mm) >= 1 && Number(mm) <= 12 && Number(dd) >= 1 && Number(dd) <= 31) {
+                return { type: 'monthday', value: `${mm}-${dd}` };
+            }
+        }
+        return null;
+    }
+
+    function extractSearchKeywords(raw) {
+        const text = raw.trim();
+        if (!text) return { keywords: [], mode: 'AND', dateFilters: [] };
+        const isOrMode = /또는|혹은|\bor\b/i.test(text);
+        const initialTokens = text.split(/\s+/);
+        const dateFilters = [];
+        const remainingTokens = [];
+        initialTokens.forEach(tok => {
+            const parsed = parseDateToken(tok);
+            if (parsed) dateFilters.push(parsed);
+            else remainingTokens.push(tok);
+        });
+        const remainingText = remainingTokens.join(' ').trim();
+        const core = remainingText ? extractSearchKeyword(remainingText) : '';
+        const rawTokens = core.replace(/,/g, ' ').split(/\s+/).filter(Boolean);
+        const conjunctions = new Set(['그리고', '와', '과', '이랑', '랑', '및', '또는', '혹은', 'or', 'OR']);
+        const andFillers = new Set(['모두', '전부', '둘다', '다', '함께', '같이']);
+        const keywords = rawTokens.filter(t => !conjunctions.has(t) && !andFillers.has(t));
+        return { keywords: keywords, mode: isOrMode ? 'OR' : 'AND', dateFilters: dateFilters };
+    }
+
+    function dateMatchesFilters(dateStr, dateFilters) {
+        if (!dateFilters || dateFilters.length === 0) return true;
+        return dateFilters.some(f => {
+            if (f.type === 'full') return dateStr === f.value;
+            if (f.type === 'monthday') return dateStr.slice(5) === f.value;
+            return false;
+        });
+    }
+
+    function contentMatchesKeywords(content, keywords, mode) {
+        if (!content) return false;
+        const lower = content.toLowerCase();
+        if (mode === 'OR') {
+            return keywords.some(k => lower.includes(k.toLowerCase()));
+        }
+        return keywords.every(k => lower.includes(k.toLowerCase()));
+    }
+
+    function entryMatches(dateStr, content, keywords, mode, dateFilters) {
+        if (!dateMatchesFilters(dateStr, dateFilters)) return false;
+        if (keywords.length === 0) return true;
+        return contentMatchesKeywords(content, keywords, mode);
+    }
+
     function searchMemos() {
-        const query = document.getElementById('searchInput').value.trim().toLowerCase();
+        const rawQuery = document.getElementById('searchInput').value.trim();
         const resultsContainer = document.getElementById('searchResults');
         const resultsList = document.getElementById('resultsList');
         const title = document.getElementById('searchResultTitle');
 
-        if (!query) {
+        if (!rawQuery) {
+            resultsContainer.style.display = 'none';
+            return;
+        }
+
+        const { keywords, mode, dateFilters } = extractSearchKeywords(rawQuery);
+        if (keywords.length === 0 && dateFilters.length === 0) {
             resultsContainer.style.display = 'none';
             return;
         }
 
         const matchedResults = [];
-
         Object.keys(memos).sort().forEach(dateKey => {
             const content = memos[dateKey];
-            if (content && content.toLowerCase().includes(query)) {
-                matchedResults.push({ type: 'calendar', key: dateKey, label: `📅 ${dateKey}`, text: content });
+            if (entryMatches(dateKey, content, keywords, mode, dateFilters)) {
+                matchedResults.push({ type: 'calendar', key: dateKey, date: dateKey, text: content });
             }
         });
-
         freeMemos.forEach(memo => {
-            if (memo.content && memo.content.toLowerCase().includes(query)) {
-                matchedResults.push({ type: 'free', id: memo.id, label: `📅 ${memo.date}`, text: memo.content });
+            if (entryMatches(memo.date, memo.content, keywords, mode, dateFilters)) {
+                matchedResults.push({ type: 'free', id: memo.id, date: memo.date, text: memo.content });
             }
         });
 
         resultsList.innerHTML = '';
+        const labelParts = [];
+        const orSeparators = { ko: '\' 또는 \'', en: '\' or \'', zh: '\' 或 \'', ja: '\' または \'' };
+        if (keywords.length > 0) {
+            const separator = mode === 'OR' ? (orSeparators[currentLang] || orSeparators.ko) : '\' + \'';
+            labelParts.push(`'${keywords.map(k => escapeHtml(k)).join(separator)}'`);
+        }
+        if (dateFilters.length > 0) {
+            const dateLabels = dateFilters.map(f => f.type === 'full' ? f.value : `${f.value.replace('-', '.')}.`);
+            labelParts.push(dateLabels.join(', '));
+        }
+        const keywordLabel = labelParts.length > 0 ? `${labelParts.join(' · ')} ` : '';
 
         if (matchedResults.length > 0) {
-            title.textContent = `검색 결과 (${matchedResults.length}건)`;
+            const countLabel = currentLang === 'ko'
+                ? `${t('searchResultDefaultTitle')} (${matchedResults.length}건)`
+                : `${t('searchResultDefaultTitle')} (${matchedResults.length})`;
+            title.textContent = `${keywordLabel}${countLabel}`;
             matchedResults.forEach(item => {
                 const row = document.createElement('div');
                 row.className = 'result-item clickable';
                 const isFree = item.type === 'free';
-                
                 row.innerHTML = `
-                    <span class="result-date ${isFree ? 'free-tag' : ''}">${item.label}</span>
                     <span class="item-text">${escapeHtml(item.text)}</span>
+                    <span class="result-date">${escapeHtml(formatListDate(item.date))}</span>
                 `;
-
                 row.onclick = isFree ? () => openFreeMemoModal(item.id) : () => openCalendarModal(item.key);
                 resultsList.appendChild(row);
             });
         } else {
-            title.textContent = '검색 결과';
-            resultsList.innerHTML = '<div style="color:#888; font-size:0.9rem; padding:10px 0; text-align:center;">검색 결과가 없습니다.</div>';
+            title.textContent = `${keywordLabel}${t('searchResultDefaultTitle')}`;
+            resultsList.innerHTML = `<div style="color:var(--md-on-surface-variant); font-size:0.9rem; padding:10px 0; text-align:center;">${t('noSearchResults')}</div>`;
         }
 
         resultsContainer.style.display = 'block';
@@ -916,8 +2347,7 @@
         document.getElementById('searchResults').style.display = 'none';
     }
 
-    /* 백업 HTML 파일 생성 */
-    function exportEncryptedHtml(isAll = false) {
+    async function exportEncryptedHtml(isAll = false) {
         let sortedKeys = Object.keys(memos).sort();
         let targetMemos = {};
         let targetFreeMemos = [...freeMemos];
@@ -932,27 +2362,24 @@
         } else {
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
-
             if (!startDate && !endDate) {
-                alert('날짜를 선택해 주세요.');
+                await customAlert(t('alertSelectDate'));
                 return;
             }
-
             const start = startDate || endDate;
             const end = endDate || startDate;
             rangeTitle = `${start} ~ ${end}`;
-
             sortedKeys.filter(key => key >= start && key <= end).forEach(key => {
                 targetMemos[key] = memos[key];
             });
         }
 
         if (Object.keys(targetMemos).length === 0 && targetFreeMemos.length === 0) {
-            alert('저장할 메모가 없습니다.');
+            await customAlert(t('alertNoMemosToSave'));
             return;
         }
 
-        const password = loggedInPassword || prompt('백업을 암호화할 비밀번호를 입력하세요:');
+        const password = loggedInPassword || localStorage.getItem('backupPassword') || await customPrompt(t('promptBackupPassword'));
         if (!password) return;
 
         const payload = JSON.stringify({
@@ -970,12 +2397,12 @@
     <title>암호화 메모 백업 (${rangeTitle})</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"><\/script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8f9fa; padding: 25px; color: #222; }
-        .box { max-width: 750px; margin: 0 auto; background: white; padding: 30px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #000; padding: 25px; color: #E6E1E5; }
+        .box { max-width: 750px; margin: 0 auto; background: #000; padding: 30px; border: none; }
         .lock-box { text-align: center; padding: 20px; }
-        input[type="password"] { padding: 10px; width: 220px; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
-        button { padding: 10px 18px; font-size: 1rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        pre { white-space: pre-wrap; word-break: break-all; font-family: inherit; font-size: 0.95rem; line-height: 1.5; }
+        input[type="password"] { padding: 10px; width: 220px; font-size: 1rem; border: none; border-bottom: 2px solid #49454F; border-radius: 0; text-align: center; background: transparent; color: #E6E1E5; }
+        button { padding: 10px 18px; font-size: 1rem; background: #D0BCFF; color: #381E72; border: none; border-radius: 100px; cursor: pointer; font-weight: bold; }
+        pre { white-space: pre-wrap; word-break: break-all; font-family: inherit; font-size: 0.95rem; line-height: 1.5; color: #E6E1E5; }
     </style>
 </head>
 <body>
@@ -1000,20 +2427,23 @@
             if(!decryptedStr) throw new Error();
             const data = JSON.parse(decryptedStr);
             
-            let out = "========================================\\n";
-            out += " 📌 메모 목록 (" + (data.range || "") + ")\\n";
-            out += "========================================\\n\\n";
+            let out = "";
             
             const keys = Object.keys(data.calendar || {}).sort();
-            keys.forEach(k => {
-                if(data.calendar[k]) {
-                    out += "[" + k + "]\\n" + data.calendar[k] + "\\n\\n----------------------------------------\\n\\n";
-                }
-            });
+            if (keys.length > 0) {
+                out += "========================================\\n";
+                out += " 📅 달력 메모 (" + (data.range || "") + ")\\n";
+                out += "========================================\\n\\n";
+                keys.forEach(k => {
+                    if(data.calendar[k]) {
+                        out += "[" + k + "]\\n" + data.calendar[k] + "\\n\\n----------------------------------------\\n\\n";
+                    }
+                });
+            }
 
             if(data.free && data.free.length > 0) {
                 out += "========================================\\n";
-                out += " 📝 자유 메모 목록\\n";
+                out += " 📝 메모 목록\\n";
                 out += "========================================\\n\\n";
                 data.free.forEach(m => {
                     out += "[" + m.date + "]\\n" + m.content + "\\n\\n----------------------------------------\\n\\n";
@@ -1032,40 +2462,15 @@
 </body>
 </html>`;
 
+        const fileNamePrefixes = { ko: '메모백업', en: 'MemoBackup', zh: '备忘录备份', ja: 'メモバックアップ' };
+        const fileNameAllSuffixes = { ko: '전체', en: 'All', zh: '全部', ja: '全体' };
+        const fileNamePrefix = fileNamePrefixes[currentLang] || fileNamePrefixes.ko;
+        const fileNameAllSuffix = fileNameAllSuffixes[currentLang] || fileNameAllSuffixes.ko;
         const fileName = isAll 
-            ? `메모백업_전체_${new Date().toISOString().split('T')[0]}.html`
-            : `메모백업_${rangeTitle.replace(/ /g, '')}.html`;
+            ? `${fileNamePrefix}_${fileNameAllSuffix}_${new Date().toISOString().split('T')[0]}.html`
+            : `${fileNamePrefix}_${rangeTitle.replace(/ /g, '')}.html`;
 
         downloadFile(standaloneHtml, fileName, 'text/html');
-    }
-
-    function checkAndRunDawnBackup() {
-        const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
-
-        if (now.getHours() === 3 && lastBackupDate !== todayStr) {
-            exportEncryptedHtml(true);
-            lastBackupDate = todayStr;
-        }
-    }
-
-    function toggleAutoBackup() {
-        const statusTag = document.getElementById('autoBackupStatus');
-        const btn = document.getElementById('autoBackupToggleBtn');
-
-        if (autoBackupTimer) {
-            clearInterval(autoBackupTimer);
-            autoBackupTimer = null;
-            statusTag.textContent = '비활성화됨';
-            statusTag.classList.remove('active');
-            btn.textContent = '새벽 자동 백업 시작';
-        } else {
-            autoBackupTimer = setInterval(checkAndRunDawnBackup, 60000);
-            statusTag.textContent = '매일 03:00 대기 중';
-            statusTag.classList.add('active');
-            btn.textContent = '새벽 자동 백업 중지';
-            alert('새벽 자동 백업이 시작되었습니다.');
-        }
     }
 
     function importMemosFromFile(event) {
@@ -1073,33 +2478,31 @@
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = async function(e) {
             const rawContent = e.target.result;
-
             try {
                 let encData = '';
                 const match = rawContent.match(/const encrypted = "([^"]+)";/) || rawContent.match(/RESTORE_DATA:([^\s-->]+)/);
                 if (match) encData = match[1];
 
                 if (!encData) {
-                    alert('올바른 암호화 백업 파일을 찾을 수 없습니다.');
+                    await customAlert(t('alertInvalidBackupFile'));
                     return;
                 }
 
-                const pwd = prompt('백업 파일 복호화 비밀번호를 입력하세요:');
+                const pwd = await customPrompt(t('promptDecryptPassword'));
                 if (!pwd) return;
 
                 const bytes = CryptoJS.AES.decrypt(encData, pwd);
                 const decryptedStr = bytes.toString(CryptoJS.enc.Utf8);
 
                 if (!decryptedStr) {
-                    alert('비밀번호가 일치하지 않거나 파일이 손상되었습니다.');
+                    await customAlert(t('alertWrongPasswordOrCorrupt'));
                     return;
                 }
 
                 const parsed = JSON.parse(decryptedStr);
-
-                if (confirm('백업 데이터를 불러왔습니다. 기존 메모와 합치시겠습니까?')) {
+                if (await customConfirm(t('confirmMergeBackup'))) {
                     if (parsed.calendar) Object.assign(memos, parsed.calendar);
                     if (parsed.free && Array.isArray(parsed.free)) {
                         const existingIds = new Set(freeMemos.map(m => m.id));
@@ -1110,12 +2513,12 @@
 
                     localStorage.setItem('simplePostitNotes', JSON.stringify(memos));
                     localStorage.setItem('simpleFreeMemos', JSON.stringify(freeMemos));
-                    alert('성공적으로 복원되었습니다!');
+                    await customAlert(t('alertRestoreSuccess'));
                     renderCalendar();
                     renderFreeMemos();
                 }
             } catch (err) {
-                alert('파일을 불러오는 중 오류가 발생했습니다.');
+                await customAlert(t('alertFileLoadError'));
             }
             event.target.value = '';
         };
@@ -1137,8 +2540,45 @@
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
-    function changeMonth(offset) {
+    function formatListDate(dateStr) {
+        if (!dateStr) return '';
+        const year = dateStr.slice(0, 4);
+        const currentYear = String(new Date().getFullYear());
+        return (year === currentYear) ? dateStr.slice(5) : dateStr;
+    }
+
+    function changeMonth(offset, direction = '') {
         currentDate.setMonth(currentDate.getMonth() + offset);
+        renderCalendar();
+
+        const calendarTab = document.getElementById('tabCalendar');
+        calendarTab.classList.remove('slide-from-bottom', 'slide-from-top', 'slide-from-left', 'slide-from-right');
+        
+        let animClass = '';
+        if (direction === 'down') animClass = 'slide-from-top';
+        else if (direction === 'up') animClass = 'slide-from-bottom';
+        else animClass = offset > 0 ? 'slide-from-right' : 'slide-from-left';
+
+        void calendarTab.offsetWidth;
+        calendarTab.classList.add(animClass);
+        calendarTab.addEventListener('animationend', function handler() {
+            calendarTab.classList.remove('slide-from-bottom', 'slide-from-top', 'slide-from-left', 'slide-from-right');
+            calendarTab.removeEventListener('animationend', handler);
+        });
+    }
+
+    async function pickYear() {
+        const currentYear = currentDate.getFullYear();
+        const input = await customTextPrompt(t('promptYear'), String(currentYear));
+        if (!input) return;
+
+        const year = parseInt(input, 10);
+        if (isNaN(year) || String(year) !== input.trim() || year < 1900 || year > 2100) {
+            await customAlert(t('alertInvalidYear'));
+            return;
+        }
+
+        currentDate.setFullYear(year);
         renderCalendar();
     }
 </script>
